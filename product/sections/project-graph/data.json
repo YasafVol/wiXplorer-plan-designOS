@@ -1,0 +1,398 @@
+{
+  "_meta": {
+    "models": {
+      "GraphNode": "A single entity node in the graph. Has a type (page, app, table, code, analytics), a label, source system, type-specific metadata, and an alert count. All nodes have an id that is referenced by edges.",
+      "GraphEdge": "A directed connection between two nodes. The source and target fields reference node ids. The type describes the nature of the relationship (e.g. hosts, manages, depends_on). Edges with hasAlert=true are rendered in red.",
+      "Alert": "An active monitoring signal attached to a specific node. Severity can be error, warning, or info. Each alert references the nodeId of the affected entity.",
+      "LayerFilter": "A UI filter toggle for a given entity type. When enabled is false the entire layer is hidden from the graph."
+    },
+    "relationships": [
+      "Project node (type=project) is the root — edges of type 'contains' connect it to all top-level pages and site-level apps",
+      "Pages connect to apps they host via edges of type 'hosts'",
+      "Apps connect to tables they manage via edges of type 'manages'",
+      "Pages connect to tables they consume directly via edges of type 'reads'",
+      "Pages connect to code files via edges of type 'contains'",
+      "Code files connect to tables they read/write via edges of type 'reads'",
+      "Code files connect to other code files they import via edges of type 'depends_on'",
+      "Analytics nodes connect to their page via edges of type 'tracks'",
+      "Alerts reference a nodeId — any edge incident to that node gains hasAlert=true"
+    ]
+  },
+
+  "project": {
+    "id": "node-project",
+    "type": "project",
+    "label": "My Business Site",
+    "source": "DM",
+    "meta": {
+      "domain": "mybusiness.wixsite.com",
+      "publishedAt": "2024-03-15T00:00:00Z",
+      "totalPages": 6,
+      "premium": true
+    },
+    "alertCount": 1
+  },
+
+  "nodes": [
+    {
+      "id": "node-page-home",
+      "type": "page",
+      "label": "Landing Page",
+      "source": "DM",
+      "meta": {
+        "url": "/",
+        "title": "Home — My Business",
+        "isPublished": true,
+        "hasPopup": true,
+        "popupTrigger": "onScroll"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-blog",
+      "type": "page",
+      "label": "Blog",
+      "source": "DM",
+      "meta": {
+        "url": "/blog",
+        "title": "Blog — My Business",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-shop",
+      "type": "page",
+      "label": "Shop",
+      "source": "DM",
+      "meta": {
+        "url": "/shop",
+        "title": "Shop — My Business",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-about",
+      "type": "page",
+      "label": "About",
+      "source": "DM",
+      "meta": {
+        "url": "/about",
+        "title": "About Us — My Business",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-contact",
+      "type": "page",
+      "label": "Contact",
+      "source": "DM",
+      "meta": {
+        "url": "/contact",
+        "title": "Contact Us — My Business",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-404",
+      "type": "page",
+      "label": "Error 404",
+      "source": "DM",
+      "meta": {
+        "url": "/error",
+        "title": "Page Not Found",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-multilingual",
+      "type": "app",
+      "label": "Multilingual",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-multilingual",
+        "scope": "site",
+        "languages": ["en", "es", "fr", "de"],
+        "defaultLanguage": "en",
+        "isManaged": true
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-seo",
+      "type": "app",
+      "label": "SEO Tools",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-seo",
+        "scope": "site",
+        "isManaged": true
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-forms",
+      "type": "app",
+      "label": "Wix Forms",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-forms",
+        "scope": "page",
+        "formCount": 2
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-stores",
+      "type": "app",
+      "label": "Wix Stores",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-stores",
+        "scope": "page",
+        "productCount": 34
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-blog",
+      "type": "app",
+      "label": "Wix Blog",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-blog",
+        "scope": "page",
+        "postCount": 12
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-table-mailinglist",
+      "type": "table",
+      "label": "MailingList",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "mailinglist",
+        "rowCount": 847,
+        "schema": [
+          { "field": "_id", "type": "text" },
+          { "field": "email", "type": "text" },
+          { "field": "firstName", "type": "text" },
+          { "field": "subscribedAt", "type": "date" },
+          { "field": "source", "type": "text" }
+        ]
+      },
+      "alertCount": 1
+    },
+    {
+      "id": "node-table-contacts",
+      "type": "table",
+      "label": "Contacts",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "contacts",
+        "rowCount": 312,
+        "schema": [
+          { "field": "_id", "type": "text" },
+          { "field": "name", "type": "text" },
+          { "field": "email", "type": "text" },
+          { "field": "message", "type": "text" },
+          { "field": "submittedAt", "type": "date" },
+          { "field": "status", "type": "text" }
+        ]
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-table-products",
+      "type": "table",
+      "label": "Products",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "stores/products",
+        "rowCount": 34,
+        "schema": [
+          { "field": "_id", "type": "text" },
+          { "field": "name", "type": "text" },
+          { "field": "price", "type": "number" },
+          { "field": "sku", "type": "text" },
+          { "field": "inStock", "type": "boolean" }
+        ]
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-table-orders",
+      "type": "table",
+      "label": "Orders",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "stores/orders",
+        "rowCount": 189,
+        "schema": [
+          { "field": "_id", "type": "text" },
+          { "field": "buyerEmail", "type": "text" },
+          { "field": "total", "type": "number" },
+          { "field": "status", "type": "text" },
+          { "field": "createdAt", "type": "date" }
+        ]
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-table-blogposts",
+      "type": "table",
+      "label": "BlogPosts",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "blog/posts",
+        "rowCount": 12,
+        "schema": [
+          { "field": "_id", "type": "text" },
+          { "field": "title", "type": "text" },
+          { "field": "content", "type": "richtext" },
+          { "field": "publishedAt", "type": "date" },
+          { "field": "tags", "type": "array" }
+        ]
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-landing",
+      "type": "code",
+      "label": "landingPage.js",
+      "source": "Velo",
+      "meta": {
+        "path": "pages/landingPage.js",
+        "fileType": "page",
+        "linesOfCode": 84,
+        "lastModified": "2026-02-18T14:22:00Z"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-backup-cron",
+      "type": "code",
+      "label": "backupCron.jsw",
+      "source": "Velo",
+      "meta": {
+        "path": "backend/backupCron.jsw",
+        "fileType": "backend",
+        "schedule": "0 0 * * *",
+        "linesOfCode": 61,
+        "lastModified": "2026-01-30T09:05:00Z",
+        "description": "Nightly CRON job that exports MailingList rows to external backup database"
+      },
+      "alertCount": 1
+    },
+    {
+      "id": "node-code-email-trigger",
+      "type": "code",
+      "label": "emailTrigger.jsw",
+      "source": "Velo",
+      "meta": {
+        "path": "backend/emailTrigger.jsw",
+        "fileType": "backend",
+        "linesOfCode": 42,
+        "lastModified": "2026-02-10T11:30:00Z",
+        "description": "Sends automated welcome email after successful form submission"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-router",
+      "type": "code",
+      "label": "router.js",
+      "source": "Velo",
+      "meta": {
+        "path": "site/router.js",
+        "fileType": "site",
+        "linesOfCode": 28,
+        "lastModified": "2025-11-12T08:00:00Z"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-cart",
+      "type": "code",
+      "label": "cart.js",
+      "source": "Velo",
+      "meta": {
+        "path": "pages/cart.js",
+        "fileType": "page",
+        "linesOfCode": 117,
+        "lastModified": "2026-02-05T16:45:00Z"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-analytics-home",
+      "type": "analytics",
+      "label": "Analytics: Landing Page",
+      "source": "Analytics",
+      "meta": {
+        "pageId": "node-page-home",
+        "views30d": 12840,
+        "sessions30d": 9210,
+        "bounceRate": 0.42,
+        "avgSessionDuration": 185
+      },
+      "alertCount": 0
+    }
+  ],
+
+  "edges": [
+    { "id": "e-project-home",        "source": "node-project",           "target": "node-page-home",         "type": "contains",    "hasAlert": false },
+    { "id": "e-project-blog",        "source": "node-project",           "target": "node-page-blog",         "type": "contains",    "hasAlert": false },
+    { "id": "e-project-shop",        "source": "node-project",           "target": "node-page-shop",         "type": "contains",    "hasAlert": false },
+    { "id": "e-project-about",       "source": "node-project",           "target": "node-page-about",        "type": "contains",    "hasAlert": false },
+    { "id": "e-project-contact",     "source": "node-project",           "target": "node-page-contact",      "type": "contains",    "hasAlert": false },
+    { "id": "e-project-404",         "source": "node-project",           "target": "node-page-404",          "type": "contains",    "hasAlert": false },
+    { "id": "e-project-multilingual","source": "node-project",           "target": "node-app-multilingual",  "type": "hosts",       "hasAlert": false },
+    { "id": "e-project-seo",         "source": "node-project",           "target": "node-app-seo",           "type": "hosts",       "hasAlert": false },
+    { "id": "e-home-forms",          "source": "node-page-home",         "target": "node-app-forms",         "type": "hosts",       "hasAlert": false },
+    { "id": "e-home-landing-js",     "source": "node-page-home",         "target": "node-code-landing",      "type": "contains",    "hasAlert": false },
+    { "id": "e-home-analytics",      "source": "node-page-home",         "target": "node-analytics-home",    "type": "tracks",      "hasAlert": false },
+    { "id": "e-contact-forms",       "source": "node-page-contact",      "target": "node-app-forms",         "type": "hosts",       "hasAlert": false },
+    { "id": "e-shop-stores",         "source": "node-page-shop",         "target": "node-app-stores",        "type": "hosts",       "hasAlert": false },
+    { "id": "e-shop-cart-js",        "source": "node-page-shop",         "target": "node-code-cart",         "type": "contains",    "hasAlert": false },
+    { "id": "e-blog-blog-app",       "source": "node-page-blog",         "target": "node-app-blog",          "type": "hosts",       "hasAlert": false },
+    { "id": "e-forms-mailinglist",   "source": "node-app-forms",         "target": "node-table-mailinglist", "type": "manages",     "hasAlert": false },
+    { "id": "e-forms-contacts",      "source": "node-app-forms",         "target": "node-table-contacts",    "type": "manages",     "hasAlert": false },
+    { "id": "e-stores-products",     "source": "node-app-stores",        "target": "node-table-products",    "type": "manages",     "hasAlert": false },
+    { "id": "e-stores-orders",       "source": "node-app-stores",        "target": "node-table-orders",      "type": "manages",     "hasAlert": false },
+    { "id": "e-blog-blogposts",      "source": "node-app-blog",          "target": "node-table-blogposts",   "type": "manages",     "hasAlert": false },
+    { "id": "e-cron-mailinglist",    "source": "node-code-backup-cron",  "target": "node-table-mailinglist", "type": "reads",       "hasAlert": true  },
+    { "id": "e-email-mailinglist",   "source": "node-code-email-trigger","target": "node-table-mailinglist", "type": "reads",       "hasAlert": false },
+    { "id": "e-cron-router",         "source": "node-code-backup-cron",  "target": "node-code-router",       "type": "depends_on",  "hasAlert": false },
+    { "id": "e-email-router",        "source": "node-code-email-trigger","target": "node-code-router",       "type": "depends_on",  "hasAlert": false }
+  ],
+
+  "alerts": [
+    {
+      "id": "alert-cron-table-ref",
+      "nodeId": "node-code-backup-cron",
+      "severity": "error",
+      "message": "ReferenceError: Collection 'mailinglist_v2' not found. The collection may have been renamed or deleted.",
+      "timestamp": "2026-02-20T00:00:04Z",
+      "affectedEdgeIds": ["e-cron-mailinglist"]
+    }
+  ],
+
+  "layerFilters": [
+    { "type": "page",      "label": "Pages",     "color": "indigo",  "enabled": true },
+    { "type": "app",       "label": "Apps",       "color": "cyan",    "enabled": true },
+    { "type": "table",     "label": "Tables",     "color": "emerald", "enabled": true },
+    { "type": "code",      "label": "Code",       "color": "violet",  "enabled": true },
+    { "type": "analytics", "label": "Analytics",  "color": "amber",   "enabled": true }
+  ]
+}
