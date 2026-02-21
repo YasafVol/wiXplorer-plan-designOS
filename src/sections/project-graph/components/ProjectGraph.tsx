@@ -1,5 +1,17 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Search, Maximize2, Plus, Minus, X, AlertTriangle, PanelRight, Tag, Layers } from 'lucide-react'
+import {
+  Search,
+  Maximize2,
+  Plus,
+  Minus,
+  X,
+  AlertTriangle,
+  PanelRight,
+  Tag,
+  Layers,
+  FolderOpen,
+  Folder,
+} from 'lucide-react'
 import type {
   ProjectGraphProps,
   NodeType,
@@ -7,14 +19,16 @@ import type {
   GraphEdge,
 } from '@/../product/sections/project-graph/types'
 import { GraphNodeCard, NODE_W, NODE_H } from './GraphNode'
+import { ClusterNodeCard } from './ClusterNodeCard'
 import { NodeActionMenu } from './NodeActionMenu'
 import { NodeExplainPanel } from './NodeExplainPanel'
 import { GraphViews } from './GraphViews'
 import type { GraphView } from './GraphViews'
+import {
+  computeClusterProjection,
+} from './clusterUtils'
 
 // ─── Edge annotation labels ────────────────────────────────────────────────────
-// Only edge types that carry meaningful semantic information get labels.
-// Structural containment ('contains') is already implied by the layer hierarchy.
 
 const EDGE_ANNOTATIONS: Partial<Record<string, string>> = {
   hosts:      'hosts',
@@ -76,8 +90,6 @@ const FILTER_COLORS: Partial<Record<NodeType, FilterColors>> = {
 }
 
 // ─── Auto-view computation ─────────────────────────────────────────────────────
-// Detects common graph patterns (ecom flow, content cluster, analytics) and
-// returns pre-built views the user can activate with one click.
 
 function computeAutoViews(
   allNodes: GraphNodeType[],
@@ -90,7 +102,6 @@ function computeAutoViews(
     adj.get(e.target)?.push(e.source)
   })
 
-  // BFS up to maxHops hops from a set of seed node IDs
   const bfs = (seeds: string[], maxHops: number): Set<string> => {
     const visited = new Set(seeds)
     let frontier = [...seeds]
@@ -108,7 +119,6 @@ function computeAutoViews(
 
   const views: GraphView[] = []
 
-  // ── Purchase Flow: Stores app and its neighborhood ──────────────────────────
   const storesApp = allNodes.find(
     (n) => n.type === 'app' && n.label.toLowerCase().includes('store')
   )
@@ -122,7 +132,6 @@ function computeAutoViews(
     })
   }
 
-  // ── Content Discovery: Blog app and its neighborhood ────────────────────────
   const blogApp = allNodes.find(
     (n) => n.type === 'app' && n.label.toLowerCase().includes('blog')
   )
@@ -136,7 +145,6 @@ function computeAutoViews(
     })
   }
 
-  // ── Analytics Overview: all analytics nodes + their directly connected pages ─
   const analyticsSeeds = allNodes.filter((n) => n.type === 'analytics').map((n) => n.id)
   if (analyticsSeeds.length > 0) {
     views.push({
@@ -206,8 +214,6 @@ function computeLayout(
   const pageLayerOffset = 1
   const appLayer = pageLayerOffset + maxPageDepth + 1
 
-  // ── Dynamic layer assignment ─────────────────────────────────────────────────
-  // Layer 0: project | Layers 1…1+maxPageDepth: page sub-rows | appLayer+: other types
   const nodeLayerMap = new Map<string, number>()
   allNodes.forEach((n) => {
     if (n.type === 'page') {
@@ -221,20 +227,17 @@ function computeLayout(
       } else if (n.type === 'table') {
         slot = appLayer + 1
       } else if (n.type === 'code') {
-        // Split client (page/site scripts) vs server (backend) into sub-layers
         const fileType = (n.meta as { fileType?: string }).fileType
         slot = fileType === 'backend' ? appLayer + 3 : appLayer + 2
       } else if (n.type === 'package') {
         slot = appLayer + 4
       } else {
-        // analytics
         slot = appLayer + 5
       }
       nodeLayerMap.set(n.id, slot)
     }
   })
 
-  // ── Layer metadata ───────────────────────────────────────────────────────────
   const layerMetaMap = new Map<number, LayerMetaEntry>()
   layerMetaMap.set(0, { label: 'Root', fillClass: 'fill-slate-400 dark:fill-slate-500', sepClass: 'stroke-slate-300 dark:stroke-slate-600', isPageSub: false })
   for (let d = 0; d <= maxPageDepth; d++) {
@@ -252,7 +255,6 @@ function computeLayout(
   layerMetaMap.set(appLayer + 4, { label: 'Packages',    fillClass: 'fill-fuchsia-500 dark:fill-fuchsia-400', sepClass: 'stroke-fuchsia-200 dark:stroke-fuchsia-800', isPageSub: false })
   layerMetaMap.set(appLayer + 5, { label: 'Analytics',   fillClass: 'fill-amber-500 dark:fill-amber-400',     sepClass: 'stroke-amber-200 dark:stroke-amber-800',     isPageSub: false })
 
-  // ── Group nodes into layers ──────────────────────────────────────────────────
   const layerMap = new Map<number, string[]>()
   allNodes.forEach((n) => {
     const slot = nodeLayerMap.get(n.id) ?? 0
@@ -262,7 +264,6 @@ function computeLayout(
 
   const sortedLayers = [...layerMap.keys()].sort((a, b) => a - b)
 
-  // ── Compute Y positions — small gap between page sub-rows, large gap elsewhere
   const layerYMap = new Map<number, number>()
   sortedLayers.forEach((layerIdx, i) => {
     if (i === 0) {
@@ -283,7 +284,6 @@ function computeLayout(
 
   const positions = new Map<string, { x: number; y: number }>()
 
-  // Bidirectional adjacency for barycenter sorting
   const neighbors = new Map<string, Set<string>>()
   allNodes.forEach((n) => neighbors.set(n.id, new Set()))
   edges.forEach((e) => {
@@ -315,13 +315,11 @@ function computeLayout(
     layerMap.get(layerIdx)!.sort((a, b) => barycenter(a) - barycenter(b))
   }
 
-  // Phase 1: initial top-down pass
   for (const layerIdx of sortedLayers) {
     if (layerIdx > 0) sortLayer(layerIdx)
     placeLayer(layerIdx)
   }
 
-  // Phase 2: alternating up/down sweeps (Sugiyama barycenter)
   const ITERATIONS = 4
   for (let iter = 0; iter < ITERATIONS; iter++) {
     for (let i = sortedLayers.length - 2; i >= 0; i--) {
@@ -378,17 +376,90 @@ export function ProjectGraph({
   const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [customViews, setCustomViews] = useState<GraphView[]>([])
   const [viewsOpen, setViewsOpen] = useState(false)
+  const [clusteringEnabled, setClusteringEnabled] = useState(false)
+  const [expandedClusterIds, setExpandedClusterIds] = useState<Set<string>>(new Set())
 
   const containerRef = useRef<HTMLDivElement>(null)
   const dragState = useRef({ isDragging: false, hasDragged: false, startX: 0, startY: 0, startTX: 0, startTY: 0 })
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const layout = useMemo(() => computeLayout(project, nodes, edges), [project, nodes, edges])
-
-  // All nodes as a stable array
+  // All real nodes (project + leaf nodes from props)
   const allNodes = useMemo(() => [project, ...nodes], [project, nodes])
 
-  // Fit to screen on mount
+  // ── Cluster projection ──────────────────────────────────────────────────────
+  const clusterProjection = useMemo(() => {
+    if (!clusteringEnabled) return null
+    return computeClusterProjection(allNodes, edges, expandedClusterIds)
+  }, [clusteringEnabled, allNodes, edges, expandedClusterIds])
+
+  // ── Effective nodes for layout: collapsed cluster members → proxy node ───────
+  // Proxy nodes have type 'page' so computeLayout places them at depth-0 (Pages layer)
+  const layoutNodes = useMemo((): GraphNodeType[] => {
+    if (!clusterProjection) return nodes
+    const result: GraphNodeType[] = []
+    const addedClusterIds = new Set<string>()
+    nodes.forEach((node) => {
+      if (node.type !== 'page') {
+        result.push(node)
+        return
+      }
+      const clusterId = clusterProjection.clusterForMember.get(node.id)
+      if (!clusterId) {
+        result.push(node) // singleton root page — not in a cluster
+        return
+      }
+      if (expandedClusterIds.has(clusterId)) {
+        result.push(node) // expanded: show member normally
+        return
+      }
+      // Collapsed: add cluster proxy once (first member wins)
+      if (!addedClusterIds.has(clusterId)) {
+        addedClusterIds.add(clusterId)
+        const cluster = clusterProjection.clusters.find((c) => c.id === clusterId)!
+        // Fake GraphNode that the layout algorithm treats as a root page
+        result.push({
+          id: clusterId,
+          type: 'page' as const,
+          label: cluster.label,
+          source: 'DM',
+          meta: {},
+          alertCount: cluster.alertCount,
+        })
+      }
+    })
+    return result
+  }, [clusterProjection, nodes, expandedClusterIds])
+
+  // ── Effective edges for layout ────────────────────────────────────────────────
+  // Drop edges involving collapsed members; add boundary edges as GraphEdge proxies
+  const layoutEdges = useMemo((): GraphEdge[] => {
+    if (!clusterProjection) return edges
+    const { collapsedMemberIds, boundaryEdges } = clusterProjection
+    const regularEdges = edges.filter(
+      (e) => !collapsedMemberIds.has(e.source) && !collapsedMemberIds.has(e.target)
+    )
+    const proxyEdges: GraphEdge[] = boundaryEdges.map((be) => ({
+      id: be.id,
+      source: be.source,
+      target: be.target,
+      type: 'depends_on' as const,
+      hasAlert: be.hasAlert,
+    }))
+    return [...regularEdges, ...proxyEdges]
+  }, [clusterProjection, edges])
+
+  const layout = useMemo(
+    () => computeLayout(project, layoutNodes, layoutEdges),
+    [project, layoutNodes, layoutEdges]
+  )
+
+  // Nodes to iterate when rendering HTML cards (cluster proxies are in layoutNodes)
+  const renderNodes = useMemo(
+    () => (clusterProjection ? [project, ...layoutNodes] : allNodes),
+    [clusterProjection, project, layoutNodes, allNodes]
+  )
+
+  // Fit to screen on mount / layout change
   useEffect(() => {
     if (!containerRef.current) return
     const { width: cw, height: ch } = containerRef.current.getBoundingClientRect()
@@ -407,14 +478,14 @@ export function ProjectGraph({
     [alerts]
   )
 
-  // Selected node connections (BFS up to highlightDepth hops)
+  // Selected node connections — uses layoutEdges so cluster proxies resolve correctly
   const selectedConnections = useMemo(() => {
     if (!selectedNodeId) return { nodes: new Set<string>(), edges: new Set<string>() }
     const connNodes = new Set<string>([selectedNodeId])
     const connEdges = new Set<string>()
     for (let d = 0; d < highlightDepth; d++) {
       const frontier = new Set(connNodes)
-      edges.forEach((e) => {
+      layoutEdges.forEach((e) => {
         if (frontier.has(e.source) || frontier.has(e.target)) {
           connNodes.add(e.source)
           connNodes.add(e.target)
@@ -423,9 +494,9 @@ export function ProjectGraph({
       })
     }
     return { nodes: connNodes, edges: connEdges }
-  }, [selectedNodeId, edges, highlightDepth])
+  }, [selectedNodeId, layoutEdges, highlightDepth])
 
-  // Search matches
+  // Search: also bubble-up matches inside collapsed clusters
   const searchMatches = useMemo(() => {
     if (!searchQuery.trim()) return new Set<string>()
     const q = searchQuery.toLowerCase()
@@ -433,61 +504,79 @@ export function ProjectGraph({
     allNodes.forEach((n) => {
       if (n.label.toLowerCase().includes(q)) matches.add(n.id)
     })
+    if (clusterProjection) {
+      clusterProjection.clusters.forEach((cluster) => {
+        if (!expandedClusterIds.has(cluster.id)) {
+          const clusterMatches =
+            cluster.label.toLowerCase().includes(q) ||
+            cluster.memberIds.some((id) => {
+              const node = allNodes.find((n) => n.id === id)
+              return node?.label.toLowerCase().includes(q)
+            })
+          if (clusterMatches) matches.add(cluster.id)
+        }
+      })
+    }
     return matches
-  }, [searchQuery, allNodes])
+  }, [searchQuery, allNodes, clusterProjection, expandedClusterIds])
 
-  // Visible node ids
+  // Visible node IDs (uses layoutNodes so cluster proxies are included via type: 'page')
   const visibleNodeIds = useMemo(() => {
     const ids = new Set<string>([project.id])
-    nodes.forEach((n) => {
+    layoutNodes.forEach((n) => {
       if (activeTypes.has(n.type)) ids.add(n.id)
     })
     return ids
-  }, [project.id, nodes, activeTypes])
+  }, [project.id, layoutNodes, activeTypes])
 
-  // Which layer slots are currently populated (for separator + label rendering)
+  // Active layer slots for separator + label rendering
   const activeLayers = useMemo(() => {
-    const slots = new Set<number>()
-    allNodes.forEach((n) => {
+    const slots = new Set<number>();
+    [project, ...layoutNodes].forEach((n) => {
       if (visibleNodeIds.has(n.id)) {
         const slot = layout.nodeLayer.get(n.id)
         if (slot !== undefined) slots.add(slot)
       }
     })
     return [...slots].sort((a, b) => a - b)
-  }, [allNodes, visibleNodeIds, layout.nodeLayer])
+  }, [project, layoutNodes, visibleNodeIds, layout.nodeLayer])
 
-  // Auto-generated views derived from the graph structure
+  // Auto-generated views
   const autoViews = useMemo(() => computeAutoViews(allNodes, edges), [allNodes, edges])
 
-  // Node IDs in focus for the active view (null = no view active)
   const viewFocusIds = useMemo(() => {
     if (!activeViewId) return null
     return [...autoViews, ...customViews].find((v) => v.id === activeViewId)?.nodeIds ?? null
   }, [activeViewId, autoViews, customViews])
 
-  // Currently selected node object
+  // Selected real node (null for clusters)
   const selectedNode = useMemo(
     () => allNodes.find((n) => n.id === selectedNodeId) ?? null,
     [allNodes, selectedNodeId]
   )
 
-  // Connected nodes for the explain panel (depth-1, both directions)
+  // Selected cluster (null when a regular node is selected)
+  const selectedCluster = useMemo(() => {
+    if (!selectedNodeId || !clusterProjection) return null
+    return clusterProjection.clusters.find((c) => c.id === selectedNodeId) ?? null
+  }, [selectedNodeId, clusterProjection])
+
+  // Connected nodes for explain panel
   const panelConnectedNodes = useMemo(() => {
     if (!selectedNodeId) return []
     const connIds = new Set<string>()
-    edges.forEach((e) => {
+    layoutEdges.forEach((e) => {
       if (e.source === selectedNodeId) connIds.add(e.target)
       if (e.target === selectedNodeId) connIds.add(e.source)
     })
     return allNodes.filter((n) => connIds.has(n.id))
-  }, [selectedNodeId, allNodes, edges])
+  }, [selectedNodeId, allNodes, layoutEdges])
 
   // Edges directly involving the selected node (for drill-down)
   const selectedNodeEdges = useMemo(() => {
     if (!selectedNodeId) return []
-    return edges.filter((e) => e.source === selectedNodeId || e.target === selectedNodeId)
-  }, [selectedNodeId, edges])
+    return layoutEdges.filter((e) => e.source === selectedNodeId || e.target === selectedNodeId)
+  }, [selectedNodeId, layoutEdges])
 
   // Alerts for the explain panel
   const panelNodeAlerts = useMemo(
@@ -495,7 +584,7 @@ export function ProjectGraph({
     [selectedNodeId, alerts]
   )
 
-  // Screen-space anchor for the action menu (follows node on pan/zoom)
+  // Screen-space anchor for the action menu (works for real nodes and cluster proxies)
   const actionMenuAnchor = useMemo(() => {
     if (!selectedNodeId) return null
     const pos = layout.positions.get(selectedNodeId)
@@ -567,12 +656,11 @@ export function ProjectGraph({
     onFitToScreen?.()
   }, [layout, onFitToScreen])
 
-  // Zoom/pan to fit the selected node's neighborhood
   const handleExplore = useCallback(
     (nodeId: string) => {
       setHighlightDepth(2)
       const connIds = new Set<string>([nodeId])
-      edges.forEach((e) => {
+      layoutEdges.forEach((e) => {
         if (e.source === nodeId || e.target === nodeId) {
           connIds.add(e.source)
           connIds.add(e.target)
@@ -599,10 +687,9 @@ export function ProjectGraph({
       const y = (ch - (maxY - minY) * scale) / 2 - minY * scale
       setTransform({ x, y, scale })
     },
-    [edges, layout.positions]
+    [layoutEdges, layout.positions]
   )
 
-  // Save current highlighted nodes as a named custom view
   const handleSaveView = useCallback(
     (name: string) => {
       const nodeIds = viewFocusIds
@@ -627,7 +714,6 @@ export function ProjectGraph({
     setActiveViewId((prev) => (prev === id ? null : prev))
   }, [])
 
-  // When activating a view, fit the graph to show all view nodes
   const handleActivateView = useCallback(
     (id: string | null) => {
       setActiveViewId(id)
@@ -660,6 +746,15 @@ export function ProjectGraph({
     },
     [autoViews, customViews, layout.positions]
   )
+
+  const handleToggleCluster = useCallback((clusterId: string) => {
+    setExpandedClusterIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(clusterId)) next.delete(clusterId)
+      else next.add(clusterId)
+      return next
+    })
+  }, [])
 
   // Pan
   const handleMouseDown = useCallback(
@@ -712,47 +807,57 @@ export function ProjectGraph({
     }))
   }, [])
 
-  // ─── Edge renderer ─────────────────────────────────────────────────────────
+  // ─── Edge renderers ─────────────────────────────────────────────────────────
+
+  const bezierPath = (
+    src: { x: number; y: number },
+    tgt: { x: number; y: number }
+  ): { d: string; midX: number; midY: number } => {
+    const srcX = src.x + NODE_W / 2
+    const tgtX = tgt.x + NODE_W / 2
+    if (src.y < tgt.y) {
+      const srcY = src.y + NODE_H
+      const tgtY = tgt.y
+      const cp = Math.abs(tgtY - srcY) * 0.42
+      return {
+        d: `M ${srcX} ${srcY} C ${srcX} ${srcY + cp} ${tgtX} ${tgtY - cp} ${tgtX} ${tgtY}`,
+        midX: (srcX + tgtX) / 2,
+        midY: (srcY + tgtY) / 2,
+      }
+    } else if (src.y > tgt.y) {
+      const srcY = src.y
+      const tgtY = tgt.y + NODE_H
+      const cp = Math.abs(srcY - tgtY) * 0.42
+      return {
+        d: `M ${srcX} ${srcY} C ${srcX} ${srcY - cp} ${tgtX} ${tgtY + cp} ${tgtX} ${tgtY}`,
+        midX: (srcX + tgtX) / 2,
+        midY: (srcY + tgtY) / 2,
+      }
+    } else {
+      const srcY = src.y + NODE_H / 2
+      const tgtY = tgt.y + NODE_H / 2
+      const arc = 40
+      return {
+        d: `M ${srcX} ${srcY} C ${srcX} ${srcY - arc} ${tgtX} ${tgtY - arc} ${tgtX} ${tgtY}`,
+        midX: (srcX + tgtX) / 2,
+        midY: srcY - arc * 0.75,
+      }
+    }
+  }
 
   const renderEdges = () => {
-    return edges.map((edge) => {
+    // When clustering: use layoutEdges but skip boundary-edge proxies (rendered separately)
+    const edgesToRender = clusterProjection
+      ? layoutEdges.filter((e) => !e.id.startsWith('boundary:'))
+      : edges
+
+    return edgesToRender.map((edge) => {
       if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) return null
       const src = layout.positions.get(edge.source)
       const tgt = layout.positions.get(edge.target)
       if (!src || !tgt) return null
 
-      const srcX = src.x + NODE_W / 2
-      const tgtX = tgt.x + NODE_W / 2
-
-      // Exit bottom → enter top when source is above target; flip for upward edges.
-      // Same-layer edges arc up and over.
-      let d: string
-      let midX: number
-      let midY: number
-
-      if (src.y < tgt.y) {
-        const srcY = src.y + NODE_H
-        const tgtY = tgt.y
-        const cp = Math.abs(tgtY - srcY) * 0.42
-        d = `M ${srcX} ${srcY} C ${srcX} ${srcY + cp} ${tgtX} ${tgtY - cp} ${tgtX} ${tgtY}`
-        midX = (srcX + tgtX) / 2
-        midY = (srcY + tgtY) / 2
-      } else if (src.y > tgt.y) {
-        const srcY = src.y
-        const tgtY = tgt.y + NODE_H
-        const cp = Math.abs(srcY - tgtY) * 0.42
-        d = `M ${srcX} ${srcY} C ${srcX} ${srcY - cp} ${tgtX} ${tgtY + cp} ${tgtX} ${tgtY}`
-        midX = (srcX + tgtX) / 2
-        midY = (srcY + tgtY) / 2
-      } else {
-        const srcY = src.y + NODE_H / 2
-        const tgtY = tgt.y + NODE_H / 2
-        const arc = 40
-        d = `M ${srcX} ${srcY} C ${srcX} ${srcY - arc} ${tgtX} ${tgtY - arc} ${tgtX} ${tgtY}`
-        midX = (srcX + tgtX) / 2
-        midY = srcY - arc * 0.75
-      }
-
+      const { d, midX, midY } = bezierPath(src, tgt)
       const isAlerted = edge.hasAlert || alertedEdgeIds.has(edge.id)
       const isConnected = selectedConnections.edges.has(edge.id)
       const isInView = viewFocusIds
@@ -778,7 +883,6 @@ export function ProjectGraph({
       }
 
       const annotation = showEdgeLabels ? EDGE_ANNOTATIONS[edge.type] : undefined
-      // Pill dimensions — approximate JetBrains Mono 9px: ~5.5px/char
       const pillW = annotation ? annotation.length * 5.5 + 12 : 0
       const pillH = 14
 
@@ -822,6 +926,80 @@ export function ProjectGraph({
                 }
               >
                 {annotation}
+              </text>
+            </g>
+          )}
+        </g>
+      )
+    })
+  }
+
+  const renderBoundaryEdges = () => {
+    if (!clusterProjection) return null
+    return clusterProjection.boundaryEdges.map((be) => {
+      if (!visibleNodeIds.has(be.source) || !visibleNodeIds.has(be.target)) return null
+      const src = layout.positions.get(be.source)
+      const tgt = layout.positions.get(be.target)
+      if (!src || !tgt) return null
+
+      const { d, midX, midY } = bezierPath(src, tgt)
+      const isConnected = selectedConnections.edges.has(be.id)
+      const isDimmed = selectedNodeId ? !isConnected : false
+
+      const strokeClass = be.hasAlert
+        ? isDimmed
+          ? 'stroke-red-300 dark:stroke-red-900 opacity-30'
+          : 'stroke-red-500 dark:stroke-red-400'
+        : isConnected
+        ? 'stroke-indigo-400 dark:stroke-indigo-500'
+        : isDimmed
+        ? 'stroke-slate-200 dark:stroke-slate-800 opacity-20'
+        : 'stroke-indigo-200 dark:stroke-indigo-800/60'
+
+      // Count pill
+      const label = be.count > 1 ? `×${be.count}` : be.types[0] ?? ''
+      const pillW = label.length * 5.5 + 12
+      const pillH = 14
+
+      return (
+        <g key={be.id}>
+          <path
+            d={d}
+            fill="none"
+            strokeWidth={isConnected ? 2 : 1.5}
+            strokeLinecap="round"
+            strokeDasharray="5 3"
+            className={`transition-all duration-150 ${strokeClass}`}
+          />
+          {!isDimmed && (
+            <g style={{ pointerEvents: 'none' }}>
+              <rect
+                x={midX - pillW / 2}
+                y={midY - pillH / 2}
+                width={pillW}
+                height={pillH}
+                rx={pillH / 2}
+                className="fill-indigo-50 dark:fill-indigo-950/80 stroke-indigo-200 dark:stroke-indigo-800"
+                strokeWidth={1}
+              />
+              <text
+                x={midX}
+                y={midY}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fontSize: '9px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+                className={
+                  isConnected
+                    ? 'fill-indigo-600 dark:fill-indigo-400'
+                    : 'fill-indigo-400 dark:fill-indigo-500'
+                }
+              >
+                {label}
               </text>
             </g>
           )}
@@ -970,6 +1148,29 @@ export function ProjectGraph({
           )}
         </div>
 
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
+        {/* Clusters toggle */}
+        <button
+          onClick={() => {
+            setClusteringEnabled((v) => !v)
+            if (clusteringEnabled) setExpandedClusterIds(new Set())
+          }}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 ${
+            clusteringEnabled
+              ? 'bg-indigo-500 text-white border border-indigo-500'
+              : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+          }`}
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          {clusteringEnabled ? (
+            <FolderOpen className="w-3 h-3" />
+          ) : (
+            <Folder className="w-3 h-3" />
+          )}
+          Clusters
+        </button>
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -1085,7 +1286,7 @@ export function ProjectGraph({
                 pointerEvents: 'none',
               }}
             >
-              {/* Lane separator lines — dashed for page sub-rows, solid elsewhere */}
+              {/* Lane separator lines */}
               {activeLayers.slice(1).map((layerIdx, i) => {
                 const prevLayerIdx = activeLayers[i]
                 const prevY = layout.layerY.get(prevLayerIdx) ?? 0
@@ -1106,7 +1307,7 @@ export function ProjectGraph({
                 )
               })}
 
-              {/* Lane labels — both sides, 11px monospace; skipped for page sub-rows */}
+              {/* Lane labels */}
               {activeLayers.map((layerIdx) => {
                 const meta = layout.layerMeta.get(layerIdx)
                 if (!meta?.label) return null
@@ -1148,10 +1349,11 @@ export function ProjectGraph({
               })}
 
               {renderEdges()}
+              {renderBoundaryEdges()}
             </svg>
 
             {/* HTML node layer */}
-            {allNodes.map((node) => {
+            {renderNodes.map((node) => {
               if (!visibleNodeIds.has(node.id)) return null
               const pos = layout.positions.get(node.id)
               if (!pos) return null
@@ -1166,6 +1368,29 @@ export function ProjectGraph({
                 ? !viewFocusIds.has(node.id)
                 : false
               const isSearchMatch = searchMatches.has(node.id)
+
+              // Cluster proxy nodes (IDs start with 'cluster-')
+              const cluster = clusterProjection?.clusters.find((c) => c.id === node.id)
+              if (cluster) {
+                return (
+                  <ClusterNodeCard
+                    key={node.id}
+                    cluster={cluster}
+                    x={pos.x}
+                    y={pos.y}
+                    isExpanded={expandedClusterIds.has(cluster.id)}
+                    isSelected={isSelected}
+                    isHighlighted={isHighlighted}
+                    isDimmed={isDimmed}
+                    isSearchMatch={isSearchMatch}
+                    onClick={() => handleNodeClick(node.id)}
+                    onToggleExpand={(e) => {
+                      e.stopPropagation()
+                      handleToggleCluster(cluster.id)
+                    }}
+                  />
+                )
+              }
 
               return (
                 <GraphNodeCard
@@ -1190,23 +1415,28 @@ export function ProjectGraph({
             })}
           </div>
 
-          {/* Floating action menu — screen space, anchored below selected node */}
-          {actionMenuAnchor && selectedNode && (
+          {/* Floating action menu */}
+          {actionMenuAnchor && (selectedNode || selectedCluster) && (
             <NodeActionMenu
               anchor={actionMenuAnchor}
               node={selectedNode}
-              onGoTo={() => onNodeOpen?.(selectedNode.id)}
-              onExplain={() => setExplainPaneOpen(true)}  // re-opens if hidden
-              onExplore={() => handleExplore(selectedNode.id)}
-              onGoToMonitoring={() => onGoToMonitoring?.(selectedNode.id)}
+              alertCount={selectedNode?.alertCount ?? selectedCluster?.alertCount ?? 0}
+              isCluster={!!selectedCluster}
+              onGoTo={() => selectedNode && onNodeOpen?.(selectedNode.id)}
+              onExplain={() => setExplainPaneOpen(true)}
+              onExplore={() => handleExplore(selectedNodeId!)}
+              onGoToMonitoring={() =>
+                selectedNode && onGoToMonitoring?.(selectedNode.id)
+              }
             />
           )}
         </div>
 
-        {/* Inspector panel — always visible when open, tracks selected node */}
+        {/* Inspector panel */}
         {explainPaneOpen && (
           <NodeExplainPanel
             node={selectedNode}
+            selectedCluster={selectedCluster}
             connectedNodes={panelConnectedNodes}
             nodeEdges={selectedNodeEdges}
             nodeAlerts={panelNodeAlerts}

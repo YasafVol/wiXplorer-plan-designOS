@@ -10,6 +10,7 @@ import {
   BarChart3,
   Box,
   Zap,
+  Layers,
 } from 'lucide-react'
 import type {
   GraphNode,
@@ -24,6 +25,7 @@ import type {
   ProjectNodeMeta,
   PackageNodeMeta,
 } from '@/../product/sections/project-graph/types'
+import type { ClusterNode } from './clusterUtils'
 
 // ─── Type maps ────────────────────────────────────────────────────────────────
 
@@ -377,10 +379,107 @@ function PageInternals({
   )
 }
 
+// ─── Cluster panel ────────────────────────────────────────────────────────────
+
+function ClusterPanel({
+  cluster,
+  onClose,
+}: {
+  cluster: ClusterNode
+  onClose: () => void
+}) {
+  return (
+    <div className="w-72 shrink-0 flex flex-col border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      {/* Header */}
+      <div className="bg-indigo-50 dark:bg-indigo-950/30 border-b border-slate-200 dark:border-slate-800 px-4 pt-3 pb-3">
+        <div className="flex items-start gap-2 justify-between">
+          <div className="flex items-start gap-2 min-w-0">
+            <Layers className="w-4 h-4 shrink-0 mt-0.5 text-indigo-500" />
+            <span
+              className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              {cluster.label}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <span
+            className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            cluster
+          </span>
+          <span
+            className="text-[10px] text-slate-400 dark:text-slate-500"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            {cluster.memberCount} pages
+          </span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+        <div className="px-4 py-3">
+          <p
+            className="text-[12px] leading-relaxed text-slate-500 dark:text-slate-400"
+            style={{ fontFamily: "'Inter', sans-serif" }}
+          >
+            A cluster groups a root page and all its sub-pages into a single
+            node. Expand it to explore individual pages and their connections.
+          </p>
+        </div>
+
+        {cluster.alertCount > 0 && (
+          <div className="px-4 py-3">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider text-red-500 mb-2"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Alerts ({cluster.alertCount})
+            </p>
+            <p
+              className="text-[11px] text-red-600 dark:text-red-400"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              {cluster.alertCount} member page{cluster.alertCount !== 1 ? 's' : ''} ha
+              {cluster.alertCount !== 1 ? 've' : 's'} active alerts.
+            </p>
+          </div>
+        )}
+
+        <div className="px-4 py-3">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            Members ({cluster.memberCount})
+          </p>
+          <p
+            className="text-[11px] text-slate-500 dark:text-slate-400"
+            style={{ fontFamily: "'Inter', sans-serif" }}
+          >
+            Click the expand arrow on the cluster card to see all{' '}
+            {cluster.memberCount} pages and their individual connections.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface NodeExplainPanelProps {
   node: GraphNode | null
+  selectedCluster?: ClusterNode | null
   connectedNodes: GraphNode[]
   nodeEdges?: GraphEdge[]
   nodeAlerts: Alert[]
@@ -389,11 +488,17 @@ interface NodeExplainPanelProps {
 
 export function NodeExplainPanel({
   node,
+  selectedCluster,
   connectedNodes,
   nodeEdges = [],
   nodeAlerts,
   onClose,
 }: NodeExplainPanelProps) {
+  // ── Cluster state ────────────────────────────────────────────────────────────
+  if (!node && selectedCluster) {
+    return <ClusterPanel cluster={selectedCluster} onClose={onClose} />
+  }
+
   // ── Empty state ──────────────────────────────────────────────────────────────
   if (!node) {
     return (

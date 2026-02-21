@@ -1,6 +1,8 @@
 export { ProjectGraph } from './ProjectGraph'
 export { GraphNodeCard, NODE_W, NODE_H } from './GraphNode'
+export { ClusterNodeCard } from './ClusterNodeCard'
 export { NodeActionMenu } from './NodeActionMenu'
 export { NodeExplainPanel } from './NodeExplainPanel'
 export { GraphViews } from './GraphViews'
 export type { GraphView } from './GraphViews'
+export type { ClusterNode, BoundaryEdge, ClusterProjection } from './clusterUtils'

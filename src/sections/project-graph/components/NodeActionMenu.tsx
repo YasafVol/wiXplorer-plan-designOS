@@ -12,7 +12,9 @@ const GOTO_LABELS: Record<string, string> = {
 
 interface NodeActionMenuProps {
   anchor: { x: number; y: number }
-  node: GraphNode
+  node: GraphNode | null   // null when a cluster is selected
+  alertCount: number
+  isCluster?: boolean
   onGoTo: () => void
   onExplain: () => void
   onExplore: () => void
@@ -22,12 +24,15 @@ interface NodeActionMenuProps {
 export function NodeActionMenu({
   anchor,
   node,
+  alertCount,
+  isCluster,
   onGoTo,
   onExplain,
   onExplore,
   onGoToMonitoring,
 }: NodeActionMenuProps) {
-  const hasAlerts = node.alertCount > 0
+  const hasAlerts = alertCount > 0
+  const showGoTo = !isCluster
 
   return (
     <div
@@ -49,14 +54,26 @@ export function NodeActionMenu({
 
       {/* Action bar */}
       <div className="relative flex items-stretch bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg shadow-slate-200/60 dark:shadow-slate-950/60 overflow-hidden">
+        {showGoTo && (
+          <ActionButton
+            icon={ExternalLink}
+            label={node ? (GOTO_LABELS[node.type] ?? 'Go to') : 'Go to'}
+            onClick={onGoTo}
+            divider
+          />
+        )}
         <ActionButton
-          icon={ExternalLink}
-          label={GOTO_LABELS[node.type] ?? 'Go to'}
-          onClick={onGoTo}
+          icon={BookOpen}
+          label="Explain"
+          onClick={onExplain}
           divider
         />
-        <ActionButton icon={BookOpen} label="Explain" onClick={onExplain} divider />
-        <ActionButton icon={Compass} label="Explore" onClick={onExplore} divider={hasAlerts} />
+        <ActionButton
+          icon={Compass}
+          label="Explore"
+          onClick={onExplore}
+          divider={hasAlerts}
+        />
         {hasAlerts && (
           <ActionButton
             icon={ShieldAlert}
