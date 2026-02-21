@@ -88,7 +88,7 @@ export function computeClusterProjection(
 
   rootPages.forEach((rootPage) => {
     const descendants = getAllDescendants(rootPage.id, pageChildren)
-    if (descendants.length === 0) return // singleton — no cluster
+    if (descendants.length < 2) return // fewer than 3 pages total — stay flat
 
     const allMembers = [rootPage.id, ...descendants]
     const clusterId = `cluster-${rootPage.id}`

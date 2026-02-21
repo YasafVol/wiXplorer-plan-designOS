@@ -383,11 +383,22 @@ function PageInternals({
 
 function ClusterPanel({
   cluster,
+  connectedNodes,
+  memberNodes,
   onClose,
 }: {
   cluster: ClusterNode
+  connectedNodes: GraphNode[]
+  memberNodes: GraphNode[]
   onClose: () => void
 }) {
+  // Group external connections by type
+  const byType = new Map<NodeType, GraphNode[]>()
+  connectedNodes.forEach((n) => {
+    if (!byType.has(n.type)) byType.set(n.type, [])
+    byType.get(n.type)!.push(n)
+  })
+
   return (
     <div className="w-72 shrink-0 flex flex-col border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
       {/* Header */}
@@ -427,16 +438,8 @@ function ClusterPanel({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
-        <div className="px-4 py-3">
-          <p
-            className="text-[12px] leading-relaxed text-slate-500 dark:text-slate-400"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            A cluster groups a root page and all its sub-pages into a single
-            node. Expand it to explore individual pages and their connections.
-          </p>
-        </div>
 
+        {/* Alerts rollup */}
         {cluster.alertCount > 0 && (
           <div className="px-4 py-3">
             <p
@@ -449,26 +452,95 @@ function ClusterPanel({
               className="text-[11px] text-red-600 dark:text-red-400"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
-              {cluster.alertCount} member page{cluster.alertCount !== 1 ? 's' : ''} ha
-              {cluster.alertCount !== 1 ? 've' : 's'} active alerts.
+              {cluster.alertCount} member page{cluster.alertCount !== 1 ? 's have' : ' has'} active alerts.
             </p>
           </div>
         )}
 
+        {/* External connections grouped by type */}
+        {connectedNodes.length > 0 && (
+          <div className="px-4 py-3">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Connected ({connectedNodes.length})
+            </p>
+            <div className="space-y-3">
+              {[...byType.entries()].map(([type, typeNodes]) => {
+                const TypeIcon = TYPE_ICON[type]
+                const typeColors = TYPE_COLOR[type]
+                return (
+                  <div key={type}>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <TypeIcon className={`w-3 h-3 ${typeColors.icon}`} />
+                      <span
+                        className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      >
+                        {type} ({typeNodes.length})
+                      </span>
+                    </div>
+                    <div className="space-y-0.5 pl-4">
+                      {typeNodes.map((n) => (
+                        <div key={n.id} className="flex items-center justify-between gap-2">
+                          <span
+                            className="text-[11px] text-slate-600 dark:text-slate-400 truncate"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                          >
+                            {n.label}
+                          </span>
+                          {n.alertCount > 0 && (
+                            <span className="shrink-0 flex items-center gap-0.5 text-[9px] font-bold text-red-500">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              {n.alertCount}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Member pages */}
         <div className="px-4 py-3">
           <p
-            className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2"
+            className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500 dark:text-indigo-400 mb-2"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
-            Members ({cluster.memberCount})
+            Pages ({memberNodes.length})
           </p>
-          <p
-            className="text-[11px] text-slate-500 dark:text-slate-400"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            Click the expand arrow on the cluster card to see all{' '}
-            {cluster.memberCount} pages and their individual connections.
-          </p>
+          <div className="space-y-0.5">
+            {memberNodes.map((n) => {
+              const meta = n.meta as { isPublished?: boolean; url?: string }
+              return (
+                <div key={n.id} className="flex items-center gap-2 py-0.5">
+                  <Layout className="w-3 h-3 shrink-0 text-indigo-400" />
+                  <span
+                    className="flex-1 text-[11px] text-slate-600 dark:text-slate-400 truncate"
+                    style={{ fontFamily: "'Inter', sans-serif" }}
+                  >
+                    {n.label}
+                  </span>
+                  {meta.isPublished === false && (
+                    <span
+                      className="shrink-0 text-[9px] font-semibold text-slate-400 dark:text-slate-500"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      draft
+                    </span>
+                  )}
+                  {n.alertCount > 0 && (
+                    <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-red-400" />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -480,6 +552,7 @@ function ClusterPanel({
 interface NodeExplainPanelProps {
   node: GraphNode | null
   selectedCluster?: ClusterNode | null
+  clusterMemberNodes?: GraphNode[]
   connectedNodes: GraphNode[]
   nodeEdges?: GraphEdge[]
   nodeAlerts: Alert[]
@@ -489,14 +562,22 @@ interface NodeExplainPanelProps {
 export function NodeExplainPanel({
   node,
   selectedCluster,
+  clusterMemberNodes = [],
   connectedNodes,
   nodeEdges = [],
   nodeAlerts,
   onClose,
 }: NodeExplainPanelProps) {
-  // ── Cluster state ────────────────────────────────────────────────────────────
+  // ── Cluster panel ─────────────────────────────────────────────────────────────
   if (!node && selectedCluster) {
-    return <ClusterPanel cluster={selectedCluster} onClose={onClose} />
+    return (
+      <ClusterPanel
+        cluster={selectedCluster}
+        connectedNodes={connectedNodes}
+        memberNodes={clusterMemberNodes}
+        onClose={onClose}
+      />
+    )
   }
 
   // ── Empty state ──────────────────────────────────────────────────────────────

@@ -561,6 +561,13 @@ export function ProjectGraph({
     return clusterProjection.clusters.find((c) => c.id === selectedNodeId) ?? null
   }, [selectedNodeId, clusterProjection])
 
+  // Member page nodes for the cluster inspector panel
+  const clusterMemberNodes = useMemo(() => {
+    if (!selectedCluster) return []
+    const memberSet = new Set(selectedCluster.memberIds)
+    return allNodes.filter((n) => memberSet.has(n.id))
+  }, [selectedCluster, allNodes])
+
   // Connected nodes for explain panel
   const panelConnectedNodes = useMemo(() => {
     if (!selectedNodeId) return []
@@ -1437,6 +1444,7 @@ export function ProjectGraph({
           <NodeExplainPanel
             node={selectedNode}
             selectedCluster={selectedCluster}
+            clusterMemberNodes={clusterMemberNodes}
             connectedNodes={panelConnectedNodes}
             nodeEdges={selectedNodeEdges}
             nodeAlerts={panelNodeAlerts}
