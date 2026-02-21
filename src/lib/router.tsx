@@ -7,6 +7,8 @@ import { SectionPage } from '@/components/SectionPage'
 import { ScreenDesignPage, ScreenDesignFullscreen } from '@/components/ScreenDesignPage'
 import { ShellDesignPage, ShellDesignFullscreen } from '@/components/ShellDesignPage'
 import { ExportPage } from '@/components/ExportPage'
+import { ProjectsPage } from '@/components/ProjectsPage'
+import { ProjectGraphPage } from '@/components/ProjectGraphPage'
 
 export const router = createBrowserRouter([
   {
@@ -48,5 +50,13 @@ export const router = createBrowserRouter([
   {
     path: '/export',
     element: <ExportPage />,
+  },
+  {
+    path: '/projects',
+    element: <ProjectsPage />,
+  },
+  {
+    path: '/projects/:projectId',
+    element: <ProjectGraphPage />,
   },
 ])
