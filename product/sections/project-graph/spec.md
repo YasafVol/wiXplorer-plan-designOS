@@ -213,3 +213,125 @@ The graph data (nodes, edges, alerts) is already the source of truth. Deriving i
 
 ### Why is the "open in graph" action on a row, not a separate navigation item?
 The inventory is a starting point for investigation, not an endpoint. When a row reveals a problem (an orphaned page, a table with an alert, a backend file that hasn't been touched in months), the natural next step is to see its context in the graph. The row action makes that one click, and because the graph opens with the node pre-selected, the transition is immediate — no hunting for the node on the canvas.
+
+---
+
+## Clusters (Collapsible)
+
+### Purpose
+Reduce visual complexity in the project graph by aggregating related nodes into container entities ("clusters"), enabling progressive disclosure, stable navigation, and readable overviews for projects with tens to hundreds of pages.
+
+### Definitions
+
+| Term | Definition |
+|------|------------|
+| **Cluster** | A container entity representing a set of member nodes grouped by a deterministic rule |
+| **Member nodes** | Graph nodes contained within a cluster (typically Pages; optionally other types) |
+| **Cluster rule** | The grouping function that assigns nodes to clusters (e.g., route prefix, feature area, owner, template type) |
+| **Boundary edges** | Aggregated edges representing connections between a cluster and external nodes or other clusters |
+| **Bundling** | Representing many parallel edges as a single boundary edge with a count and optional type rollup |
+
+### Inputs
+
+**Graph data:**
+- Node set N with typed nodes (Page, App, Table, Code, Analytics, Package, etc.)
+- Edge set E with directed, typed edges
+
+**Cluster rule configuration:**
+- Rule type: `ROUTE_PREFIX` | `FEATURE` | `OWNER` | `TEMPLATE` | `SYSTEM`
+- Rule parameters (e.g., prefix depth for route-based grouping, owner mapping for team-based grouping)
+
+**Overlay signals (optional):**
+- Alert counts and severity per member node
+- Traffic metrics (views30d)
+- Change timestamps (for "recently modified" rollup)
+
+### Outputs
+- Cluster nodes C replacing member nodes in the canvas
+- Membership mapping M: N → C
+- Aggregated boundary edges E_agg between clusters and/or external singleton nodes
+- Cluster summaries: member counts, alert rollups, traffic signals, change indicators
+
+### Default state (Overview)
+
+When clustering is enabled, the initial graph renders:
+- Root / global node(s)
+- Cluster nodes in collapsed state
+- Boundary edges only (bundled)
+- Cluster summary badges (member count, alert count, traffic indicator)
+
+Individual member nodes are not rendered in Overview unless explicitly pinned or surfaced via selection.
+
+### Cluster node UI contract
+
+Each cluster node displays:
+- Cluster name (derived from the active rule)
+- Member count (e.g., "24 pages")
+- Optional badges:
+  - **Alerts** — aggregate count and max severity across all members
+  - **Traffic** — aggregate views or top-rank indicator
+  - **Changes** — count of members modified recently
+- Expand / collapse control
+- Optional "Focus cluster" action
+
+### Expand behavior
+
+Expanding a cluster:
+- Renders member nodes within a bounded region associated with the cluster
+- Applies a deterministic internal layout for members (grid or hierarchical) independent of the global layout
+- Internal edges (between members) are rendered subject to current edge filters
+- External connections remain bundled at the cluster boundary unless a specific member is selected
+- Does not alter the underlying graph data — expand/collapse is a view projection only
+
+### Collapse behavior
+
+Collapsing a cluster:
+- Removes member nodes from the canvas
+- Restores the cluster node as a single aggregate representation
+- Replaces member-level external edges with boundary edges
+- If a member was selected, selection is cleared or re-scoped to the cluster
+
+### Boundary edge aggregation
+
+For each external node or cluster X, all edges (u → v) where u ∈ cluster(A) and v ∈ X are aggregated, grouped by:
+- Direction (inbound / outbound)
+- Edge type (`hosts`, `reads`, `manages`, etc.)
+
+The boundary edge renders:
+- Edge type label (optional, subject to the edge labels toggle)
+- Multiplicity count (number of underlying edges)
+- Optional rollup metadata (e.g., "reads: 8, writes: 3")
+
+### Selection behavior
+
+Selecting a collapsed cluster highlights:
+- Its boundary edges
+- Its top external dependencies (ranked by edge multiplicity or signal strength)
+
+Selecting a member node within an expanded cluster:
+- Highlights the member's direct neighborhood
+- Temporarily unbundles boundary edges relevant to that specific member
+
+### Focus mode
+
+A "Focus cluster" action:
+- Zooms and centers the canvas on the cluster region
+- Dims all non-cluster content
+- Shows a navigation breadcrumb (e.g., Root › Blog)
+- Provides a clear exit action ("Back to Overview")
+
+Focus mode is a view state; it does not modify cluster membership.
+
+### Rule switching
+
+Users may switch the active cluster rule (e.g., Route Prefix → Feature Area). On rule switch:
+- Cluster nodes and membership mapping are recomputed
+- The view attempts to preserve: selected node (by stable node id), pinned nodes/views, camera position (best-effort)
+- Saved views reference underlying node ids, not cluster ids, so they remain stable across rule changes
+
+### Constraints
+
+- Maximum **12 clusters** in Overview; excess clusters collapse into an "Other" cluster or require user filtering
+- Maximum **2 nesting levels** (cluster → subcluster) to prevent deep hierarchy complexity
+- Bundling is on by default to prevent edge explosion on large clusters
+- Cluster membership must be deterministic and reproducible for the same rule and graph data
