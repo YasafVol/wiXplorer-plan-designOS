@@ -219,119 +219,95 @@ The inventory is a starting point for investigation, not an endpoint. When a row
 ## Clusters (Collapsible)
 
 ### Purpose
-Reduce visual complexity in the project graph by aggregating related nodes into container entities ("clusters"), enabling progressive disclosure, stable navigation, and readable overviews for projects with tens to hundreds of pages.
+Reduce visual complexity in the project graph by aggregating related pages into cluster nodes, enabling progressive disclosure for projects with tens to hundreds of pages.
 
 ### Definitions
 
 | Term | Definition |
 |------|------------|
-| **Cluster** | A container entity representing a set of member nodes grouped by a deterministic rule |
-| **Member nodes** | Graph nodes contained within a cluster (typically Pages; optionally other types) |
-| **Cluster rule** | The grouping function that assigns nodes to clusters (e.g., route prefix, feature area, owner, template type) |
-| **Boundary edges** | Aggregated edges representing connections between a cluster and external nodes or other clusters |
-| **Bundling** | Representing many parallel edges as a single boundary edge with a count and optional type rollup |
+| **Cluster** | A synthetic node representing a root page and all its descendants |
+| **Member nodes** | The page nodes contained within a cluster |
+| **Boundary edges** | Aggregated edges representing connections between a collapsed cluster and external non-page nodes |
+| **Bundling** | Collapsing many parallel edges into a single boundary edge with a multiplicity count |
 
-### Inputs
+### Clustering rule
 
-**Graph data:**
-- Node set N with typed nodes (Page, App, Table, Code, Analytics, Package, etc.)
-- Edge set E with directed, typed edges
+**Root-ancestor (ROUTE_PREFIX):** each root page (depth 0, no parent) that has **3 or more total pages** (itself + 2 or more descendants) forms a cluster. A root page with fewer than 3 total pages stays as individual flat nodes.
 
-**Cluster rule configuration:**
-- Rule type: `ROUTE_PREFIX` | `FEATURE` | `OWNER` | `TEMPLATE` | `SYSTEM`
-- Rule parameters (e.g., prefix depth for route-based grouping, owner mapping for team-based grouping)
+Cluster ID = `cluster-{rootPageId}`. Membership is deterministic and reproducible for the same graph data.
 
-**Overlay signals (optional):**
-- Alert counts and severity per member node
-- Traffic metrics (views30d)
-- Change timestamps (for "recently modified" rollup)
+### Toolbar toggle
 
-### Outputs
-- Cluster nodes C replacing member nodes in the canvas
-- Membership mapping M: N → C
-- Aggregated boundary edges E_agg between clusters and/or external singleton nodes
-- Cluster summaries: member counts, alert rollups, traffic signals, change indicators
+A **Clusters** button (Folder / FolderOpen icon) in the toolbar enables and disables clustering mode. Disabling clustering resets all expanded clusters to collapsed.
 
 ### Default state (Overview)
 
-When clustering is enabled, the initial graph renders:
-- Root / global node(s)
-- Cluster nodes in collapsed state
-- Boundary edges only (bundled)
-- Cluster summary badges (member count, alert count, traffic indicator)
+When clustering is enabled the graph renders:
+- Project root node
+- Cluster nodes (collapsed) in the Pages layer
+- Singleton root pages and all non-page nodes unchanged
+- Boundary edges (dashed) replacing member-level connections
+- Cluster summary badges: member count, alert rollup
 
-Individual member nodes are not rendered in Overview unless explicitly pinned or surfaced via selection.
+Individual member pages are not rendered when their cluster is collapsed.
 
-### Cluster node UI contract
+### Cluster node UI
 
-Each cluster node displays:
-- Cluster name (derived from the active rule)
-- Member count (e.g., "24 pages")
-- Optional badges:
-  - **Alerts** — aggregate count and max severity across all members
-  - **Traffic** — aggregate views or top-rank indicator
-  - **Changes** — count of members modified recently
-- Expand / collapse control
-- Optional "Focus cluster" action
+Each cluster card displays:
+- **Layers icon** + cluster name (root page label)
+- **Member count** — e.g., "12 pages"
+- **Alert badge** — aggregate alert count across all members (red, top-right)
+- **Expand / collapse chevron** (ChevronRight = collapsed, ChevronDown = expanded)
+
+Cluster cards use indigo styling to visually distinguish them from regular page nodes while keeping the same `NODE_W × NODE_H` dimensions.
 
 ### Expand behavior
 
-Expanding a cluster:
-- Renders member nodes within a bounded region associated with the cluster
-- Applies a deterministic internal layout for members (grid or hierarchical) independent of the global layout
-- Internal edges (between members) are rendered subject to current edge filters
-- External connections remain bundled at the cluster boundary unless a specific member is selected
-- Does not alter the underlying graph data — expand/collapse is a view projection only
+Clicking the chevron on a cluster card expands it:
+- Member pages appear at their normal depth sub-row positions (same layout as unclustered mode)
+- Internal page-to-page edges between members are rendered normally
+- External boundary edges are replaced by the individual member-level edges
+- Expand/collapse is a view projection — underlying graph data is not modified
 
 ### Collapse behavior
 
-Collapsing a cluster:
-- Removes member nodes from the canvas
-- Restores the cluster node as a single aggregate representation
-- Replaces member-level external edges with boundary edges
-- If a member was selected, selection is cleared or re-scoped to the cluster
+Clicking the chevron on an expanded cluster collapses it:
+- Member pages are removed from the canvas
+- The cluster node is restored as the single aggregate card
+- Member-level external edges are replaced by boundary edges
+- If a member page was selected, selection is cleared
 
 ### Boundary edge aggregation
 
-For each external node or cluster X, all edges (u → v) where u ∈ cluster(A) and v ∈ X are aggregated, grouped by:
-- Direction (inbound / outbound)
-- Edge type (`hosts`, `reads`, `manages`, etc.)
-
-The boundary edge renders:
-- Edge type label (optional, subject to the edge labels toggle)
-- Multiplicity count (number of underlying edges)
-- Optional rollup metadata (e.g., "reads: 8, writes: 3")
+For each external node X, all edges (u → v) where u ∈ cluster(A) and v ∈ X (or vice versa) are aggregated:
+- `contains` edges are omitted (structural; layer hierarchy already communicates containment)
+- Remaining edges are grouped by (effectiveSource, effectiveTarget)
+- The boundary edge renders: dashed stroke, indigo color, a `×N` count pill at the bezier midpoint (or the edge type label when count = 1)
+- Alerted boundary edges render in red
 
 ### Selection behavior
 
-Selecting a collapsed cluster highlights:
-- Its boundary edges
-- Its top external dependencies (ranked by edge multiplicity or signal strength)
+Selecting a collapsed cluster:
+- Highlights the cluster node and all its boundary edges
+- Highlights all directly connected external nodes
+- The depth toggle (1°/2°) extends the highlight as normal via BFS on effective edges
 
-Selecting a member node within an expanded cluster:
-- Highlights the member's direct neighborhood
-- Temporarily unbundles boundary edges relevant to that specific member
+Selecting a member node within an expanded cluster behaves identically to selecting any regular page node.
 
-### Focus mode
+### Inspector panel — cluster
 
-A "Focus cluster" action:
-- Zooms and centers the canvas on the cluster region
-- Dims all non-cluster content
-- Shows a navigation breadcrumb (e.g., Root › Blog)
-- Provides a clear exit action ("Back to Overview")
+When a cluster is selected the Inspector panel shows:
 
-Focus mode is a view state; it does not modify cluster membership.
+- **Alerts** — aggregate alert count with a message listing how many member pages are affected
+- **Connected** — all external nodes reachable via boundary edges, grouped by type (App, Table, Code, Analytics, Package) with individual alert badges
+- **Pages** — all member pages listed with a "draft" label if unpublished and an alert icon if alerted
 
-### Rule switching
+### Search with clustering
 
-Users may switch the active cluster rule (e.g., Route Prefix → Feature Area). On rule switch:
-- Cluster nodes and membership mapping are recomputed
-- The view attempts to preserve: selected node (by stable node id), pinned nodes/views, camera position (best-effort)
-- Saved views reference underlying node ids, not cluster ids, so they remain stable across rule changes
+If a search query matches a member page inside a collapsed cluster, the cluster node is highlighted (bubble-up). The match count badge reflects both direct matches and cluster bubble-ups.
 
 ### Constraints
 
-- Maximum **12 clusters** in Overview; excess clusters collapse into an "Other" cluster or require user filtering
-- Maximum **2 nesting levels** (cluster → subcluster) to prevent deep hierarchy complexity
-- Bundling is on by default to prevent edge explosion on large clusters
-- Cluster membership must be deterministic and reproducible for the same rule and graph data
+- A cluster is only created when a root page has **≥ 2 descendants** (3+ total pages); smaller groups remain as flat nodes
+- Bundling is on by default when a cluster is collapsed
+- Cluster IDs are not stable across graph data changes (they embed the root page ID)
