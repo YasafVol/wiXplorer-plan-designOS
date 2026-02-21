@@ -1,7 +1,11 @@
 # Project Graph Specification
 
 ## Overview
-The Project Graph is the core view of wiXplorer — a hierarchical, layered visualization of all entities in the user's Wix site. Entities are represented as color-coded nodes connected by typed edges that show their relationships. The graph supports free exploration, layer filtering, search, node inspection with drill-down content, saved views, and edge annotation toggling. The layout uses a Sugiyama barycenter algorithm to minimize edge crossings across all layers.
+wiXplorer has two complementary views of a Wix site's structure: the **Project Graph** and the **Inventory Table**. Both are accessible from the `/projects` project picker.
+
+The **Project Graph** is a hierarchical, layered visualization of all entities and their relationships. It is optimized for understanding structure, tracing dependencies, and exploring connectivity. The layout uses a Sugiyama barycenter algorithm to minimize edge crossings across all layers.
+
+The **Inventory Table** is a sortable, filterable table across entity types. It is optimized for auditing, bulk scanning, and management tasks — use cases where the graph's spatial layout is not the right tool. The two views are interlinked: the inventory table has a row action to open the graph focused on that node.
 
 ## Node Types
 Each entity type has a distinct color, icon, and layer position:
@@ -112,6 +116,60 @@ Views let users isolate a meaningful subset of the graph:
 - Alerted edges are rendered in red
 - The Inspector panel shows alert details (severity, message) for the selected node
 
+### Drag behavior
+- Panning the canvas (mousedown + drag) does not deselect the current node
+- A drag is distinguished from a click by a 4px movement threshold; only a true click (no movement) triggers deselection or selection changes
+
+---
+
+## Inventory Table
+
+The inventory table is a dedicated full-screen view at `/projects/:id/inventory`. It provides a management-oriented lens over the same graph data, without the spatial layout.
+
+### Tabs
+
+| Tab    | Entity type | Primary use |
+|--------|-------------|-------------|
+| Pages  | `page`      | Audit page coverage, find orphans, check analytics gaps |
+| Apps   | `app`       | Review installed apps and their scope |
+| Tables | `table`     | Inspect CMS collections, row counts, schema field counts |
+| Code   | `code`      | Review Velo files by context, size, modification date, schedule |
+
+### Pages tab columns
+
+| Column   | Description |
+|----------|-------------|
+| Name     | Page label with depth indentation (vertical bars showing hierarchy level) and an "orphan" badge if no inbound edges |
+| URL      | Full URL path in monospace; `{slug}` patterns indicate dynamic/template pages |
+| Type     | Inferred from URL: `static` (no params), `dynamic` (`:param`), `template` (`{slug}`) |
+| Cluster  | Root-ancestor page label (the top-level section this page belongs to); `—` for root pages |
+| Status   | Published / Draft badge |
+| Traffic  | `views30d` from the linked analytics node, formatted as `184K`; "no data" if no analytics node tracks this page |
+| Alerts   | Alert count badge colored by max severity (error = red, warning = amber) |
+| Deps     | Count of directly connected non-page nodes (apps, tables, code, packages, analytics) |
+
+### Filters (Pages tab)
+
+| Filter | Behaviour |
+|--------|-----------|
+| `has:alerts` | Only pages with alertCount > 0; shows count in chip label |
+| `orphan` | Only pages with zero inbound edges (no parent page or project contains-edge) |
+| `missing:analytics` | Only pages with no analytics node tracking them |
+| `type:static/dynamic/template` | Filter by inferred page type |
+| `published / draft` | Filter by publication status |
+
+All filters are combinable. A count badge shows `filtered / total`.
+
+### Sorting
+Every column header is clickable to sort ascending; click again to sort descending. Null values sort last.
+
+### Row action: Open in graph
+Hovering a row reveals a Network icon button. Clicking it navigates to the graph view (`/projects/:id`) with that node pre-selected: the graph opens with `initialSelectedNodeId` set, the node is highlighted, and the Inspector panel (already open by default) shows its details.
+
+### Cross-navigation
+- Inventory header has an "Open graph" button to switch to the graph view without focusing a specific node
+- Graph page back-navigates to `/projects` (the picker), not the inventory
+
 ## UI Requirements
 - Hierarchical top-down layout with sub-rows for page hierarchy
 - Layer labels (Pages, Apps, Tables, Client Code, Server Code, Packages, Analytics) shown on both sides of the canvas in the lane gutter
@@ -146,3 +204,12 @@ Labels on every edge create visual noise that obscures the graph topology — wh
 
 ### Why Views?
 The full graph of a real Wix site can have 30+ nodes. Views let users isolate meaningful subgraphs (the purchase flow, the content pipeline) without losing the context of the full graph. Auto-generated views bootstrap the feature; custom saved views let users capture the views they return to repeatedly.
+
+### Why a separate Inventory Table instead of adding filters to the graph?
+Graphs are not auditing tools. For sites with 50+ pages, spatial layout becomes a scanning problem — humans cannot quickly locate a draft page, or all pages missing analytics, by looking at positions on a canvas. A table supports the mental model of "show me all X where Y is true", sorting by risk, and bulk review. The graph answers "how are these things connected?"; the inventory answers "which things exist and what state are they in?". These are different questions that need different interfaces.
+
+### Why derive inventory data from the graph data rather than a separate store?
+The graph data (nodes, edges, alerts) is already the source of truth. Deriving inventory rows at render time from that same data keeps the two views in sync automatically — there is no separate inventory data to maintain or synchronize. Computed properties (cluster, depth, dep count, page type) are pure functions of the graph structure.
+
+### Why is the "open in graph" action on a row, not a separate navigation item?
+The inventory is a starting point for investigation, not an endpoint. When a row reveals a problem (an orphaned page, a table with an alert, a backend file that hasn't been touched in months), the natural next step is to see its context in the graph. The row action makes that one click, and because the graph opens with the node pre-selected, the transition is immediate — no hunting for the node on the canvas.
