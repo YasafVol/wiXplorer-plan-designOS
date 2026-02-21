@@ -91,7 +91,7 @@ function computeLayout(
   const allNodes = [project, ...nodes]
   const nodeMap = new Map(allNodes.map((n) => [n.id, n]))
 
-  // Bidirectional adjacency for cross-layer sorting
+  // Bidirectional adjacency
   const neighbors = new Map<string, Set<string>>()
   allNodes.forEach((n) => neighbors.set(n.id, new Set()))
   edges.forEach((e) => {
@@ -109,7 +109,6 @@ function computeLayout(
     layerMap.get(slot)!.push(n.id)
   })
 
-  // Only include layers that actually have nodes
   const sortedLayers = [...layerMap.keys()].sort((a, b) => a - b)
   const maxLayer = sortedLayers[sortedLayers.length - 1] ?? 0
 
@@ -126,30 +125,54 @@ function computeLayout(
 
   const positions = new Map<string, { x: number; y: number }>()
 
-  for (const layerIdx of sortedLayers) {
-    const nodeIds = layerMap.get(layerIdx)!
-
-    if (layerIdx > 0) {
-      // Sort by average x of neighbors that are already positioned (layers above)
-      nodeIds.sort((a, b) => {
-        const avgNeighborX = (id: string) => {
-          const positioned = [...(neighbors.get(id) ?? [])]
-            .map((nid) => positions.get(nid))
-            .filter(Boolean) as { x: number; y: number }[]
-          if (!positioned.length) return canvasWidth / 2
-          return positioned.reduce((sum, p) => sum + p.x + NODE_W / 2, 0) / positioned.length
-        }
-        return avgNeighborX(a) - avgNeighborX(b)
-      })
-    }
-
+  // Assign x positions for a layer given its current ordering
+  const placeLayer = (layerIdx: number) => {
+    const ids = layerMap.get(layerIdx)!
     const y = PADDING_Y + layerIdx * (NODE_H + V_GAP)
-    const totalW = nodeIds.length * NODE_W + (nodeIds.length - 1) * H_GAP
+    const totalW = ids.length * NODE_W + (ids.length - 1) * H_GAP
     const startX = (canvasWidth - totalW) / 2
-
-    nodeIds.forEach((id, i) => {
+    ids.forEach((id, i) => {
       positions.set(id, { x: startX + i * (NODE_W + H_GAP), y })
     })
+  }
+
+  // Barycenter: average x-center of all currently-positioned neighbors.
+  // Nodes with no positioned neighbors fall back to canvas midpoint.
+  const barycenter = (id: string): number => {
+    const pts = [...(neighbors.get(id) ?? [])]
+      .map((nid) => positions.get(nid))
+      .filter(Boolean) as { x: number; y: number }[]
+    if (!pts.length) return canvasWidth / 2
+    return pts.reduce((sum, p) => sum + p.x + NODE_W / 2, 0) / pts.length
+  }
+
+  const sortLayer = (layerIdx: number) => {
+    layerMap.get(layerIdx)!.sort((a, b) => barycenter(a) - barycenter(b))
+  }
+
+  // ── Phase 1: initial top-down pass ──────────────────────────────────────────
+  // Gives every node a starting position so the up-pass has something to work with.
+  for (const layerIdx of sortedLayers) {
+    if (layerIdx > 0) sortLayer(layerIdx)
+    placeLayer(layerIdx)
+  }
+
+  // ── Phase 2: alternating up/down sweeps (Sugiyama barycenter) ───────────────
+  // Each sweep re-sorts using positions from the previous step, pulling nodes
+  // toward the centroid of ALL their neighbors — not just those above them.
+  // This lets cross-layer connections (e.g. tables ↔ code) influence ordering.
+  const ITERATIONS = 4
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    // Up sweep — sort from bottom layer toward root, using lower-neighbor positions
+    for (let i = sortedLayers.length - 2; i >= 0; i--) {
+      sortLayer(sortedLayers[i])
+      placeLayer(sortedLayers[i])
+    }
+    // Down sweep — sort from root toward bottom, using upper-neighbor positions
+    for (let i = 1; i < sortedLayers.length; i++) {
+      sortLayer(sortedLayers[i])
+      placeLayer(sortedLayers[i])
+    }
   }
 
   return { positions, canvasWidth, canvasHeight, layerCount: sortedLayers.length }

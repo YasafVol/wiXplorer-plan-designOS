@@ -10,6 +10,7 @@
       "Project node (type=project) is the root — edges of type 'contains' connect it to all top-level pages and site-level apps",
       "Pages connect to apps they host via edges of type 'hosts'",
       "Apps connect to tables they manage via edges of type 'manages'",
+      "Apps connect to pages they auto-generate (e.g. blog articles, store cart/checkout) via edges of type 'manages'",
       "Pages connect to tables they consume directly via edges of type 'reads'",
       "Pages connect to code files via edges of type 'contains'",
       "Code files connect to tables they read/write via edges of type 'reads'",
@@ -27,7 +28,7 @@
     "meta": {
       "domain": "mybusiness.wixsite.com",
       "publishedAt": "2024-03-15T00:00:00Z",
-      "totalPages": 6,
+      "totalPages": 13,
       "premium": true
     },
     "alertCount": 1
@@ -62,6 +63,58 @@
       "alertCount": 0
     },
     {
+      "id": "node-page-article-1",
+      "type": "page",
+      "label": "Article 1",
+      "source": "DM",
+      "meta": {
+        "url": "/blog/article-1",
+        "title": "5 Ways to Grow Your Business Online",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-article-2",
+      "type": "page",
+      "label": "Article 2",
+      "source": "DM",
+      "meta": {
+        "url": "/blog/article-2",
+        "title": "Understanding Your Customer Base",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-article-3",
+      "type": "page",
+      "label": "Article 3",
+      "source": "DM",
+      "meta": {
+        "url": "/blog/article-3",
+        "title": "The Complete Guide to Social Media Marketing",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-article-4",
+      "type": "page",
+      "label": "Article 4",
+      "source": "DM",
+      "meta": {
+        "url": "/blog/article-4",
+        "title": "How to Build a Loyal Customer Base",
+        "isPublished": false,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
       "id": "node-page-shop",
       "type": "page",
       "label": "Shop",
@@ -69,6 +122,45 @@
       "meta": {
         "url": "/shop",
         "title": "Shop — My Business",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-cart",
+      "type": "page",
+      "label": "Cart",
+      "source": "DM",
+      "meta": {
+        "url": "/cart",
+        "title": "Your Cart",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-checkout",
+      "type": "page",
+      "label": "Checkout",
+      "source": "DM",
+      "meta": {
+        "url": "/checkout",
+        "title": "Checkout",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-thank-you",
+      "type": "page",
+      "label": "Thank You",
+      "source": "DM",
+      "meta": {
+        "url": "/thank-you",
+        "title": "Order Confirmed — Thank You!",
         "isPublished": true,
         "hasPopup": false
       },
@@ -330,7 +422,36 @@
         "path": "pages/cart.js",
         "fileType": "page",
         "linesOfCode": 117,
-        "lastModified": "2026-02-05T16:45:00Z"
+        "lastModified": "2026-02-05T16:45:00Z",
+        "description": "Custom cart logic: coupon validation, quantity limits, upsell banners"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-checkout",
+      "type": "code",
+      "label": "checkout.js",
+      "source": "Velo",
+      "meta": {
+        "path": "pages/checkout.js",
+        "fileType": "page",
+        "linesOfCode": 93,
+        "lastModified": "2026-02-12T10:15:00Z",
+        "description": "Pre-fills shipping address from member profile, validates promo codes on submit"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-order-hook",
+      "type": "code",
+      "label": "orderHook.jsw",
+      "source": "Velo",
+      "meta": {
+        "path": "backend/orderHook.jsw",
+        "fileType": "backend",
+        "linesOfCode": 55,
+        "lastModified": "2026-02-14T09:00:00Z",
+        "description": "Triggered on order completion — writes fulfillment record, sends confirmation email"
       },
       "alertCount": 0
     },
@@ -347,34 +468,73 @@
         "avgSessionDuration": 185
       },
       "alertCount": 0
+    },
+    {
+      "id": "node-analytics-shop",
+      "type": "analytics",
+      "label": "Analytics: Shop",
+      "source": "Analytics",
+      "meta": {
+        "pageId": "node-page-shop",
+        "views30d": 8430,
+        "sessions30d": 6105,
+        "bounceRate": 0.31,
+        "avgSessionDuration": 274
+      },
+      "alertCount": 0
     }
   ],
 
   "edges": [
-    { "id": "e-project-home",        "source": "node-project",           "target": "node-page-home",         "type": "contains",    "hasAlert": false },
-    { "id": "e-project-blog",        "source": "node-project",           "target": "node-page-blog",         "type": "contains",    "hasAlert": false },
-    { "id": "e-project-shop",        "source": "node-project",           "target": "node-page-shop",         "type": "contains",    "hasAlert": false },
-    { "id": "e-project-about",       "source": "node-project",           "target": "node-page-about",        "type": "contains",    "hasAlert": false },
-    { "id": "e-project-contact",     "source": "node-project",           "target": "node-page-contact",      "type": "contains",    "hasAlert": false },
-    { "id": "e-project-404",         "source": "node-project",           "target": "node-page-404",          "type": "contains",    "hasAlert": false },
-    { "id": "e-project-multilingual","source": "node-project",           "target": "node-app-multilingual",  "type": "hosts",       "hasAlert": false },
-    { "id": "e-project-seo",         "source": "node-project",           "target": "node-app-seo",           "type": "hosts",       "hasAlert": false },
-    { "id": "e-home-forms",          "source": "node-page-home",         "target": "node-app-forms",         "type": "hosts",       "hasAlert": false },
-    { "id": "e-home-landing-js",     "source": "node-page-home",         "target": "node-code-landing",      "type": "contains",    "hasAlert": false },
-    { "id": "e-home-analytics",      "source": "node-page-home",         "target": "node-analytics-home",    "type": "tracks",      "hasAlert": false },
-    { "id": "e-contact-forms",       "source": "node-page-contact",      "target": "node-app-forms",         "type": "hosts",       "hasAlert": false },
-    { "id": "e-shop-stores",         "source": "node-page-shop",         "target": "node-app-stores",        "type": "hosts",       "hasAlert": false },
-    { "id": "e-shop-cart-js",        "source": "node-page-shop",         "target": "node-code-cart",         "type": "contains",    "hasAlert": false },
-    { "id": "e-blog-blog-app",       "source": "node-page-blog",         "target": "node-app-blog",          "type": "hosts",       "hasAlert": false },
-    { "id": "e-forms-mailinglist",   "source": "node-app-forms",         "target": "node-table-mailinglist", "type": "manages",     "hasAlert": false },
-    { "id": "e-forms-contacts",      "source": "node-app-forms",         "target": "node-table-contacts",    "type": "manages",     "hasAlert": false },
-    { "id": "e-stores-products",     "source": "node-app-stores",        "target": "node-table-products",    "type": "manages",     "hasAlert": false },
-    { "id": "e-stores-orders",       "source": "node-app-stores",        "target": "node-table-orders",      "type": "manages",     "hasAlert": false },
-    { "id": "e-blog-blogposts",      "source": "node-app-blog",          "target": "node-table-blogposts",   "type": "manages",     "hasAlert": false },
-    { "id": "e-cron-mailinglist",    "source": "node-code-backup-cron",  "target": "node-table-mailinglist", "type": "reads",       "hasAlert": true  },
-    { "id": "e-email-mailinglist",   "source": "node-code-email-trigger","target": "node-table-mailinglist", "type": "reads",       "hasAlert": false },
-    { "id": "e-cron-router",         "source": "node-code-backup-cron",  "target": "node-code-router",       "type": "depends_on",  "hasAlert": false },
-    { "id": "e-email-router",        "source": "node-code-email-trigger","target": "node-code-router",       "type": "depends_on",  "hasAlert": false }
+    { "id": "e-project-home",        "source": "node-project",           "target": "node-page-home",         "type": "contains",   "hasAlert": false },
+    { "id": "e-project-blog",        "source": "node-project",           "target": "node-page-blog",         "type": "contains",   "hasAlert": false },
+    { "id": "e-project-article-1",   "source": "node-project",           "target": "node-page-article-1",    "type": "contains",   "hasAlert": false },
+    { "id": "e-project-article-2",   "source": "node-project",           "target": "node-page-article-2",    "type": "contains",   "hasAlert": false },
+    { "id": "e-project-article-3",   "source": "node-project",           "target": "node-page-article-3",    "type": "contains",   "hasAlert": false },
+    { "id": "e-project-article-4",   "source": "node-project",           "target": "node-page-article-4",    "type": "contains",   "hasAlert": false },
+    { "id": "e-project-shop",        "source": "node-project",           "target": "node-page-shop",         "type": "contains",   "hasAlert": false },
+    { "id": "e-project-cart",        "source": "node-project",           "target": "node-page-cart",         "type": "contains",   "hasAlert": false },
+    { "id": "e-project-checkout",    "source": "node-project",           "target": "node-page-checkout",     "type": "contains",   "hasAlert": false },
+    { "id": "e-project-thank-you",   "source": "node-project",           "target": "node-page-thank-you",    "type": "contains",   "hasAlert": false },
+    { "id": "e-project-about",       "source": "node-project",           "target": "node-page-about",        "type": "contains",   "hasAlert": false },
+    { "id": "e-project-contact",     "source": "node-project",           "target": "node-page-contact",      "type": "contains",   "hasAlert": false },
+    { "id": "e-project-404",         "source": "node-project",           "target": "node-page-404",          "type": "contains",   "hasAlert": false },
+    { "id": "e-project-multilingual","source": "node-project",           "target": "node-app-multilingual",  "type": "hosts",      "hasAlert": false },
+    { "id": "e-project-seo",         "source": "node-project",           "target": "node-app-seo",           "type": "hosts",      "hasAlert": false },
+
+    { "id": "e-home-forms",          "source": "node-page-home",         "target": "node-app-forms",         "type": "hosts",      "hasAlert": false },
+    { "id": "e-home-landing-js",     "source": "node-page-home",         "target": "node-code-landing",      "type": "contains",   "hasAlert": false },
+    { "id": "e-home-analytics",      "source": "node-page-home",         "target": "node-analytics-home",    "type": "tracks",     "hasAlert": false },
+
+    { "id": "e-blog-blog-app",       "source": "node-page-blog",         "target": "node-app-blog",          "type": "hosts",      "hasAlert": false },
+    { "id": "e-blog-article-1",      "source": "node-app-blog",          "target": "node-page-article-1",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-article-2",      "source": "node-app-blog",          "target": "node-page-article-2",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-article-3",      "source": "node-app-blog",          "target": "node-page-article-3",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-article-4",      "source": "node-app-blog",          "target": "node-page-article-4",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-blogposts",      "source": "node-app-blog",          "target": "node-table-blogposts",   "type": "manages",    "hasAlert": false },
+
+    { "id": "e-shop-stores",         "source": "node-page-shop",         "target": "node-app-stores",        "type": "hosts",      "hasAlert": false },
+    { "id": "e-shop-analytics",      "source": "node-page-shop",         "target": "node-analytics-shop",    "type": "tracks",     "hasAlert": false },
+    { "id": "e-stores-cart",         "source": "node-app-stores",        "target": "node-page-cart",         "type": "manages",    "hasAlert": false },
+    { "id": "e-stores-checkout",     "source": "node-app-stores",        "target": "node-page-checkout",     "type": "manages",    "hasAlert": false },
+    { "id": "e-stores-thank-you",    "source": "node-app-stores",        "target": "node-page-thank-you",    "type": "manages",    "hasAlert": false },
+    { "id": "e-stores-products",     "source": "node-app-stores",        "target": "node-table-products",    "type": "manages",    "hasAlert": false },
+    { "id": "e-stores-orders",       "source": "node-app-stores",        "target": "node-table-orders",      "type": "manages",    "hasAlert": false },
+
+    { "id": "e-cart-cart-js",        "source": "node-page-cart",         "target": "node-code-cart",         "type": "contains",   "hasAlert": false },
+    { "id": "e-checkout-checkout-js","source": "node-page-checkout",     "target": "node-code-checkout",     "type": "contains",   "hasAlert": false },
+    { "id": "e-checkout-orders",     "source": "node-code-checkout",     "target": "node-table-orders",      "type": "reads",      "hasAlert": false },
+    { "id": "e-order-hook-orders",   "source": "node-code-order-hook",   "target": "node-table-orders",      "type": "reads",      "hasAlert": false },
+    { "id": "e-order-hook-router",   "source": "node-code-order-hook",   "target": "node-code-router",       "type": "depends_on", "hasAlert": false },
+
+    { "id": "e-contact-forms",       "source": "node-page-contact",      "target": "node-app-forms",         "type": "hosts",      "hasAlert": false },
+    { "id": "e-forms-mailinglist",   "source": "node-app-forms",         "target": "node-table-mailinglist", "type": "manages",    "hasAlert": false },
+    { "id": "e-forms-contacts",      "source": "node-app-forms",         "target": "node-table-contacts",    "type": "manages",    "hasAlert": false },
+
+    { "id": "e-cron-mailinglist",    "source": "node-code-backup-cron",  "target": "node-table-mailinglist", "type": "reads",      "hasAlert": true  },
+    { "id": "e-email-mailinglist",   "source": "node-code-email-trigger","target": "node-table-mailinglist", "type": "reads",      "hasAlert": false },
+    { "id": "e-cron-router",         "source": "node-code-backup-cron",  "target": "node-code-router",       "type": "depends_on", "hasAlert": false },
+    { "id": "e-email-router",        "source": "node-code-email-trigger","target": "node-code-router",       "type": "depends_on", "hasAlert": false }
   ],
 
   "alerts": [
