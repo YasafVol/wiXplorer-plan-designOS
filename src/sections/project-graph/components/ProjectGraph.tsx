@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Search, Maximize2, Plus, Minus, X, AlertTriangle } from 'lucide-react'
+import { Search, Maximize2, Plus, Minus, X, AlertTriangle, PanelRight, Tag, Layers } from 'lucide-react'
 import type {
   ProjectGraphProps,
   NodeType,
@@ -9,11 +9,28 @@ import type {
 import { GraphNodeCard, NODE_W, NODE_H } from './GraphNode'
 import { NodeActionMenu } from './NodeActionMenu'
 import { NodeExplainPanel } from './NodeExplainPanel'
+import { GraphViews } from './GraphViews'
+import type { GraphView } from './GraphViews'
+
+// ─── Edge annotation labels ────────────────────────────────────────────────────
+// Only edge types that carry meaningful semantic information get labels.
+// Structural containment ('contains') is already implied by the layer hierarchy.
+
+const EDGE_ANNOTATIONS: Partial<Record<string, string>> = {
+  hosts:      'hosts',
+  manages:    'manages',
+  reads:      'reads',
+  depends_on: 'uses',
+  tracks:     'tracks',
+  imports:    'imports',
+  triggers:   'triggers',
+}
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
 const H_GAP = 22
 const V_GAP = 88
+const V_GAP_PAGE = 44
 const PADDING_X = 80
 const PADDING_Y = 56
 
@@ -51,29 +68,96 @@ const FILTER_COLORS: Partial<Record<NodeType, FilterColors>> = {
     active: 'bg-amber-500 text-white border border-amber-500',
     dot: 'bg-amber-500',
   },
+  package: {
+    inactive: 'bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-600 dark:text-fuchsia-400 border border-fuchsia-200 dark:border-fuchsia-800',
+    active: 'bg-fuchsia-500 text-white border border-fuchsia-500',
+    dot: 'bg-fuchsia-500',
+  },
+}
+
+// ─── Auto-view computation ─────────────────────────────────────────────────────
+// Detects common graph patterns (ecom flow, content cluster, analytics) and
+// returns pre-built views the user can activate with one click.
+
+function computeAutoViews(
+  allNodes: GraphNodeType[],
+  edges: GraphEdge[]
+): GraphView[] {
+  const adj = new Map<string, string[]>()
+  allNodes.forEach((n) => adj.set(n.id, []))
+  edges.forEach((e) => {
+    adj.get(e.source)?.push(e.target)
+    adj.get(e.target)?.push(e.source)
+  })
+
+  // BFS up to maxHops hops from a set of seed node IDs
+  const bfs = (seeds: string[], maxHops: number): Set<string> => {
+    const visited = new Set(seeds)
+    let frontier = [...seeds]
+    for (let h = 0; h < maxHops; h++) {
+      const next: string[] = []
+      frontier.forEach((id) => {
+        adj.get(id)?.forEach((nid) => {
+          if (!visited.has(nid)) { visited.add(nid); next.push(nid) }
+        })
+      })
+      frontier = next
+    }
+    return visited
+  }
+
+  const views: GraphView[] = []
+
+  // ── Purchase Flow: Stores app and its neighborhood ──────────────────────────
+  const storesApp = allNodes.find(
+    (n) => n.type === 'app' && n.label.toLowerCase().includes('store')
+  )
+  if (storesApp) {
+    views.push({
+      id: 'view-purchase',
+      name: 'Purchase Flow',
+      description: 'Shop, cart, checkout, and the data behind them',
+      nodeIds: bfs([storesApp.id], 2),
+      isBuiltIn: true,
+    })
+  }
+
+  // ── Content Discovery: Blog app and its neighborhood ────────────────────────
+  const blogApp = allNodes.find(
+    (n) => n.type === 'app' && n.label.toLowerCase().includes('blog')
+  )
+  if (blogApp) {
+    views.push({
+      id: 'view-content',
+      name: 'Content Discovery',
+      description: 'Blog pages, article structure, and content collections',
+      nodeIds: bfs([blogApp.id], 2),
+      isBuiltIn: true,
+    })
+  }
+
+  // ── Analytics Overview: all analytics nodes + their directly connected pages ─
+  const analyticsSeeds = allNodes.filter((n) => n.type === 'analytics').map((n) => n.id)
+  if (analyticsSeeds.length > 0) {
+    views.push({
+      id: 'view-analytics',
+      name: 'Analytics Overview',
+      description: 'Traffic and engagement data across all tracked pages',
+      nodeIds: bfs(analyticsSeeds, 1),
+      isBuiltIn: true,
+    })
+  }
+
+  return views
 }
 
 // ─── Layout computation ────────────────────────────────────────────────────────
 
-// Each entity type gets a fixed layer slot regardless of graph connectivity.
-// Layers are processed top-to-bottom; within each layer nodes are sorted by the
-// average x-position of their already-positioned neighbors to reduce crossings.
-const TYPE_LAYER: Record<NodeType, number> = {
-  project:   0,
-  page:      1,
-  app:       2,
-  code:      3,
-  table:     4,
-  analytics: 5,
-}
-
-const LAYER_META: Record<number, { label: string; fillClass: string; sepClass: string }> = {
-  0: { label: 'Root',      fillClass: 'fill-slate-400 dark:fill-slate-500',    sepClass: 'stroke-slate-300 dark:stroke-slate-600' },
-  1: { label: 'Pages',     fillClass: 'fill-indigo-500 dark:fill-indigo-400',  sepClass: 'stroke-indigo-200 dark:stroke-indigo-800' },
-  2: { label: 'Apps',      fillClass: 'fill-cyan-500 dark:fill-cyan-400',      sepClass: 'stroke-cyan-200 dark:stroke-cyan-800' },
-  3: { label: 'Code',      fillClass: 'fill-violet-500 dark:fill-violet-400',  sepClass: 'stroke-violet-200 dark:stroke-violet-800' },
-  4: { label: 'Tables',    fillClass: 'fill-emerald-500 dark:fill-emerald-400',sepClass: 'stroke-emerald-200 dark:stroke-emerald-800' },
-  5: { label: 'Analytics', fillClass: 'fill-amber-500 dark:fill-amber-400',    sepClass: 'stroke-amber-200 dark:stroke-amber-800' },
+interface LayerMetaEntry {
+  label: string
+  fillClass: string
+  sepClass: string
+  isPageSub: boolean
 }
 
 interface LayoutResult {
@@ -81,6 +165,9 @@ interface LayoutResult {
   canvasWidth: number
   canvasHeight: number
   layerCount: number
+  layerMeta: Map<number, LayerMetaEntry>
+  nodeLayer: Map<string, number>
+  layerY: Map<number, number>
 }
 
 function computeLayout(
@@ -91,7 +178,112 @@ function computeLayout(
   const allNodes = [project, ...nodes]
   const nodeMap = new Map(allNodes.map((n) => [n.id, n]))
 
-  // Bidirectional adjacency
+  // ── Page hierarchy: BFS to compute per-page depth ────────────────────────────
+  const pageChildren = new Map<string, string[]>()
+  const pageParents = new Map<string, string>()
+  allNodes.filter((n) => n.type === 'page').forEach((n) => pageChildren.set(n.id, []))
+  edges.forEach((e) => {
+    const src = nodeMap.get(e.source)
+    const tgt = nodeMap.get(e.target)
+    if (src?.type === 'page' && tgt?.type === 'page' && e.type === 'contains') {
+      pageChildren.get(e.source)?.push(e.target)
+      pageParents.set(e.target, e.source)
+    }
+  })
+
+  const pageDepth = new Map<string, number>()
+  const bfsQueue: Array<{ id: string; depth: number }> = []
+  pageChildren.forEach((_, id) => {
+    if (!pageParents.has(id)) bfsQueue.push({ id, depth: 0 })
+  })
+  while (bfsQueue.length) {
+    const { id, depth } = bfsQueue.shift()!
+    pageDepth.set(id, depth)
+    pageChildren.get(id)?.forEach((childId) => bfsQueue.push({ id: childId, depth: depth + 1 }))
+  }
+
+  const maxPageDepth = pageDepth.size > 0 ? Math.max(...pageDepth.values()) : 0
+  const pageLayerOffset = 1
+  const appLayer = pageLayerOffset + maxPageDepth + 1
+
+  // ── Dynamic layer assignment ─────────────────────────────────────────────────
+  // Layer 0: project | Layers 1…1+maxPageDepth: page sub-rows | appLayer+: other types
+  const nodeLayerMap = new Map<string, number>()
+  allNodes.forEach((n) => {
+    if (n.type === 'page') {
+      nodeLayerMap.set(n.id, pageLayerOffset + (pageDepth.get(n.id) ?? 0))
+    } else {
+      let slot: number
+      if (n.type === 'project') {
+        slot = 0
+      } else if (n.type === 'app') {
+        slot = appLayer
+      } else if (n.type === 'table') {
+        slot = appLayer + 1
+      } else if (n.type === 'code') {
+        // Split client (page/site scripts) vs server (backend) into sub-layers
+        const fileType = (n.meta as { fileType?: string }).fileType
+        slot = fileType === 'backend' ? appLayer + 3 : appLayer + 2
+      } else if (n.type === 'package') {
+        slot = appLayer + 4
+      } else {
+        // analytics
+        slot = appLayer + 5
+      }
+      nodeLayerMap.set(n.id, slot)
+    }
+  })
+
+  // ── Layer metadata ───────────────────────────────────────────────────────────
+  const layerMetaMap = new Map<number, LayerMetaEntry>()
+  layerMetaMap.set(0, { label: 'Root', fillClass: 'fill-slate-400 dark:fill-slate-500', sepClass: 'stroke-slate-300 dark:stroke-slate-600', isPageSub: false })
+  for (let d = 0; d <= maxPageDepth; d++) {
+    layerMetaMap.set(pageLayerOffset + d, {
+      label: d === 0 ? 'Pages' : '',
+      fillClass: 'fill-indigo-500 dark:fill-indigo-400',
+      sepClass: 'stroke-indigo-200 dark:stroke-indigo-800',
+      isPageSub: d > 0,
+    })
+  }
+  layerMetaMap.set(appLayer,     { label: 'Apps',        fillClass: 'fill-cyan-500 dark:fill-cyan-400',       sepClass: 'stroke-cyan-200 dark:stroke-cyan-800',       isPageSub: false })
+  layerMetaMap.set(appLayer + 1, { label: 'Tables',      fillClass: 'fill-emerald-500 dark:fill-emerald-400', sepClass: 'stroke-emerald-200 dark:stroke-emerald-800', isPageSub: false })
+  layerMetaMap.set(appLayer + 2, { label: 'Client Code', fillClass: 'fill-violet-400 dark:fill-violet-300',   sepClass: 'stroke-violet-200 dark:stroke-violet-800',   isPageSub: false })
+  layerMetaMap.set(appLayer + 3, { label: 'Server Code', fillClass: 'fill-violet-600 dark:fill-violet-500',   sepClass: 'stroke-violet-300 dark:stroke-violet-700',   isPageSub: false })
+  layerMetaMap.set(appLayer + 4, { label: 'Packages',    fillClass: 'fill-fuchsia-500 dark:fill-fuchsia-400', sepClass: 'stroke-fuchsia-200 dark:stroke-fuchsia-800', isPageSub: false })
+  layerMetaMap.set(appLayer + 5, { label: 'Analytics',   fillClass: 'fill-amber-500 dark:fill-amber-400',     sepClass: 'stroke-amber-200 dark:stroke-amber-800',     isPageSub: false })
+
+  // ── Group nodes into layers ──────────────────────────────────────────────────
+  const layerMap = new Map<number, string[]>()
+  allNodes.forEach((n) => {
+    const slot = nodeLayerMap.get(n.id) ?? 0
+    if (!layerMap.has(slot)) layerMap.set(slot, [])
+    layerMap.get(slot)!.push(n.id)
+  })
+
+  const sortedLayers = [...layerMap.keys()].sort((a, b) => a - b)
+
+  // ── Compute Y positions — small gap between page sub-rows, large gap elsewhere
+  const layerYMap = new Map<number, number>()
+  sortedLayers.forEach((layerIdx, i) => {
+    if (i === 0) {
+      layerYMap.set(layerIdx, PADDING_Y)
+    } else {
+      const prevLayerIdx = sortedLayers[i - 1]
+      const prevY = layerYMap.get(prevLayerIdx)!
+      const isSubPageGap = layerIdx > pageLayerOffset && layerIdx <= pageLayerOffset + maxPageDepth
+      layerYMap.set(layerIdx, prevY + NODE_H + (isSubPageGap ? V_GAP_PAGE : V_GAP))
+    }
+  })
+
+  let maxNodesInLayer = 0
+  layerMap.forEach((ids) => { maxNodesInLayer = Math.max(maxNodesInLayer, ids.length) })
+  const canvasWidth = Math.max(900, PADDING_X * 2 + maxNodesInLayer * NODE_W + (maxNodesInLayer - 1) * H_GAP)
+  const lastLayer = sortedLayers[sortedLayers.length - 1] ?? 0
+  const canvasHeight = (layerYMap.get(lastLayer) ?? 0) + NODE_H + PADDING_Y
+
+  const positions = new Map<string, { x: number; y: number }>()
+
+  // Bidirectional adjacency for barycenter sorting
   const neighbors = new Map<string, Set<string>>()
   allNodes.forEach((n) => neighbors.set(n.id, new Set()))
   edges.forEach((e) => {
@@ -101,34 +293,9 @@ function computeLayout(
     }
   })
 
-  // Assign each node to its type-based layer slot
-  const layerMap = new Map<number, string[]>()
-  allNodes.forEach((n) => {
-    const slot = TYPE_LAYER[n.type] ?? 5
-    if (!layerMap.has(slot)) layerMap.set(slot, [])
-    layerMap.get(slot)!.push(n.id)
-  })
-
-  const sortedLayers = [...layerMap.keys()].sort((a, b) => a - b)
-  const maxLayer = sortedLayers[sortedLayers.length - 1] ?? 0
-
-  let maxNodesInLayer = 0
-  layerMap.forEach((ids) => {
-    maxNodesInLayer = Math.max(maxNodesInLayer, ids.length)
-  })
-
-  const canvasWidth = Math.max(
-    900,
-    PADDING_X * 2 + maxNodesInLayer * NODE_W + (maxNodesInLayer - 1) * H_GAP
-  )
-  const canvasHeight = PADDING_Y * 2 + (maxLayer + 1) * (NODE_H + V_GAP)
-
-  const positions = new Map<string, { x: number; y: number }>()
-
-  // Assign x positions for a layer given its current ordering
   const placeLayer = (layerIdx: number) => {
     const ids = layerMap.get(layerIdx)!
-    const y = PADDING_Y + layerIdx * (NODE_H + V_GAP)
+    const y = layerYMap.get(layerIdx)!
     const totalW = ids.length * NODE_W + (ids.length - 1) * H_GAP
     const startX = (canvasWidth - totalW) / 2
     ids.forEach((id, i) => {
@@ -136,8 +303,6 @@ function computeLayout(
     })
   }
 
-  // Barycenter: average x-center of all currently-positioned neighbors.
-  // Nodes with no positioned neighbors fall back to canvas midpoint.
   const barycenter = (id: string): number => {
     const pts = [...(neighbors.get(id) ?? [])]
       .map((nid) => positions.get(nid))
@@ -150,32 +315,34 @@ function computeLayout(
     layerMap.get(layerIdx)!.sort((a, b) => barycenter(a) - barycenter(b))
   }
 
-  // ── Phase 1: initial top-down pass ──────────────────────────────────────────
-  // Gives every node a starting position so the up-pass has something to work with.
+  // Phase 1: initial top-down pass
   for (const layerIdx of sortedLayers) {
     if (layerIdx > 0) sortLayer(layerIdx)
     placeLayer(layerIdx)
   }
 
-  // ── Phase 2: alternating up/down sweeps (Sugiyama barycenter) ───────────────
-  // Each sweep re-sorts using positions from the previous step, pulling nodes
-  // toward the centroid of ALL their neighbors — not just those above them.
-  // This lets cross-layer connections (e.g. tables ↔ code) influence ordering.
+  // Phase 2: alternating up/down sweeps (Sugiyama barycenter)
   const ITERATIONS = 4
   for (let iter = 0; iter < ITERATIONS; iter++) {
-    // Up sweep — sort from bottom layer toward root, using lower-neighbor positions
     for (let i = sortedLayers.length - 2; i >= 0; i--) {
       sortLayer(sortedLayers[i])
       placeLayer(sortedLayers[i])
     }
-    // Down sweep — sort from root toward bottom, using upper-neighbor positions
     for (let i = 1; i < sortedLayers.length; i++) {
       sortLayer(sortedLayers[i])
       placeLayer(sortedLayers[i])
     }
   }
 
-  return { positions, canvasWidth, canvasHeight, layerCount: sortedLayers.length }
+  return {
+    positions,
+    canvasWidth,
+    canvasHeight,
+    layerCount: sortedLayers.length,
+    layerMeta: layerMetaMap,
+    nodeLayer: nodeLayerMap,
+    layerY: layerYMap,
+  }
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -200,7 +367,11 @@ export function ProjectGraph({
   const [highlightDepth, setHighlightDepth] = useState<1 | 2>(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [transform, setTransform] = useState({ x: 40, y: 24, scale: 0.75 })
-  const [explainPaneOpen, setExplainPaneOpen] = useState(false)
+  const [explainPaneOpen, setExplainPaneOpen] = useState(true)
+  const [showEdgeLabels, setShowEdgeLabels] = useState(false)
+  const [activeViewId, setActiveViewId] = useState<string | null>(null)
+  const [customViews, setCustomViews] = useState<GraphView[]>([])
+  const [viewsOpen, setViewsOpen] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const dragState = useRef({ isDragging: false, startX: 0, startY: 0, startTX: 0, startTY: 0 })
@@ -272,10 +443,22 @@ export function ProjectGraph({
   const activeLayers = useMemo(() => {
     const slots = new Set<number>()
     allNodes.forEach((n) => {
-      if (visibleNodeIds.has(n.id)) slots.add(TYPE_LAYER[n.type] ?? 5)
+      if (visibleNodeIds.has(n.id)) {
+        const slot = layout.nodeLayer.get(n.id)
+        if (slot !== undefined) slots.add(slot)
+      }
     })
     return [...slots].sort((a, b) => a - b)
-  }, [allNodes, visibleNodeIds])
+  }, [allNodes, visibleNodeIds, layout.nodeLayer])
+
+  // Auto-generated views derived from the graph structure
+  const autoViews = useMemo(() => computeAutoViews(allNodes, edges), [allNodes, edges])
+
+  // Node IDs in focus for the active view (null = no view active)
+  const viewFocusIds = useMemo(() => {
+    if (!activeViewId) return null
+    return [...autoViews, ...customViews].find((v) => v.id === activeViewId)?.nodeIds ?? null
+  }, [activeViewId, autoViews, customViews])
 
   // Currently selected node object
   const selectedNode = useMemo(
@@ -293,6 +476,12 @@ export function ProjectGraph({
     })
     return allNodes.filter((n) => connIds.has(n.id))
   }, [selectedNodeId, allNodes, edges])
+
+  // Edges directly involving the selected node (for drill-down)
+  const selectedNodeEdges = useMemo(() => {
+    if (!selectedNodeId) return []
+    return edges.filter((e) => e.source === selectedNodeId || e.target === selectedNodeId)
+  }, [selectedNodeId, edges])
 
   // Alerts for the explain panel
   const panelNodeAlerts = useMemo(
@@ -328,7 +517,6 @@ export function ProjectGraph({
 
   const clearSelection = useCallback(() => {
     setSelectedNodeId(null)
-    setExplainPaneOpen(false)
     onNodeSelect?.(null)
   }, [onNodeSelect])
 
@@ -408,6 +596,65 @@ export function ProjectGraph({
     [edges, layout.positions]
   )
 
+  // Save current highlighted nodes as a named custom view
+  const handleSaveView = useCallback(
+    (name: string) => {
+      const nodeIds = viewFocusIds
+        ? new Set(viewFocusIds)
+        : new Set(selectedConnections.nodes)
+      setCustomViews((prev) => [
+        ...prev,
+        {
+          id: `custom-${Date.now()}`,
+          name,
+          description: `${nodeIds.size} nodes`,
+          nodeIds,
+          isBuiltIn: false,
+        },
+      ])
+    },
+    [viewFocusIds, selectedConnections.nodes]
+  )
+
+  const handleDeleteView = useCallback((id: string) => {
+    setCustomViews((prev) => prev.filter((v) => v.id !== id))
+    setActiveViewId((prev) => (prev === id ? null : prev))
+  }, [])
+
+  // When activating a view, fit the graph to show all view nodes
+  const handleActivateView = useCallback(
+    (id: string | null) => {
+      setActiveViewId(id)
+      setViewsOpen(false)
+      if (!id || !containerRef.current) return
+      const view = [...autoViews, ...customViews].find((v) => v.id === id)
+      if (!view) return
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      view.nodeIds.forEach((nid) => {
+        const pos = layout.positions.get(nid)
+        if (!pos) return
+        minX = Math.min(minX, pos.x)
+        minY = Math.min(minY, pos.y)
+        maxX = Math.max(maxX, pos.x + NODE_W)
+        maxY = Math.max(maxY, pos.y + NODE_H)
+      })
+      if (minX === Infinity) return
+      const { width: cw, height: ch } = containerRef.current.getBoundingClientRect()
+      const PAD = 80
+      const scale = Math.min(
+        (cw - PAD * 2) / Math.max(maxX - minX, 1),
+        (ch - PAD * 2) / Math.max(maxY - minY, 1),
+        1.2
+      )
+      setTransform({
+        x: (cw - (maxX - minX) * scale) / 2 - minX * scale,
+        y: (ch - (maxY - minY) * scale) / 2 - minY * scale,
+        scale,
+      })
+    },
+    [autoViews, customViews, layout.positions]
+  )
+
   // Pan
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -462,16 +709,47 @@ export function ProjectGraph({
       if (!src || !tgt) return null
 
       const srcX = src.x + NODE_W / 2
-      const srcY = src.y + NODE_H
       const tgtX = tgt.x + NODE_W / 2
-      const tgtY = tgt.y
-      const cp = Math.abs(tgtY - srcY) * 0.42
 
-      const d = `M ${srcX} ${srcY} C ${srcX} ${srcY + cp} ${tgtX} ${tgtY - cp} ${tgtX} ${tgtY}`
+      // Exit bottom → enter top when source is above target; flip for upward edges.
+      // Same-layer edges arc up and over.
+      let d: string
+      let midX: number
+      let midY: number
+
+      if (src.y < tgt.y) {
+        const srcY = src.y + NODE_H
+        const tgtY = tgt.y
+        const cp = Math.abs(tgtY - srcY) * 0.42
+        d = `M ${srcX} ${srcY} C ${srcX} ${srcY + cp} ${tgtX} ${tgtY - cp} ${tgtX} ${tgtY}`
+        midX = (srcX + tgtX) / 2
+        midY = (srcY + tgtY) / 2
+      } else if (src.y > tgt.y) {
+        const srcY = src.y
+        const tgtY = tgt.y + NODE_H
+        const cp = Math.abs(srcY - tgtY) * 0.42
+        d = `M ${srcX} ${srcY} C ${srcX} ${srcY - cp} ${tgtX} ${tgtY + cp} ${tgtX} ${tgtY}`
+        midX = (srcX + tgtX) / 2
+        midY = (srcY + tgtY) / 2
+      } else {
+        const srcY = src.y + NODE_H / 2
+        const tgtY = tgt.y + NODE_H / 2
+        const arc = 40
+        d = `M ${srcX} ${srcY} C ${srcX} ${srcY - arc} ${tgtX} ${tgtY - arc} ${tgtX} ${tgtY}`
+        midX = (srcX + tgtX) / 2
+        midY = srcY - arc * 0.75
+      }
 
       const isAlerted = edge.hasAlert || alertedEdgeIds.has(edge.id)
       const isConnected = selectedConnections.edges.has(edge.id)
-      const isDimmed = !!selectedNodeId && !isConnected
+      const isInView = viewFocusIds
+        ? viewFocusIds.has(edge.source) && viewFocusIds.has(edge.target)
+        : true
+      const isDimmed = selectedNodeId
+        ? !isConnected
+        : viewFocusIds
+        ? !isInView
+        : false
 
       let strokeClass: string
       if (isAlerted) {
@@ -486,15 +764,55 @@ export function ProjectGraph({
         strokeClass = 'stroke-slate-300 dark:stroke-slate-600/80'
       }
 
+      const annotation = showEdgeLabels ? EDGE_ANNOTATIONS[edge.type] : undefined
+      // Pill dimensions — approximate JetBrains Mono 9px: ~5.5px/char
+      const pillW = annotation ? annotation.length * 5.5 + 12 : 0
+      const pillH = 14
+
       return (
-        <path
-          key={edge.id}
-          d={d}
-          fill="none"
-          strokeWidth={isAlerted || isConnected ? 2 : 1.5}
-          strokeLinecap="round"
-          className={`transition-all duration-150 ${strokeClass}`}
-        />
+        <g key={edge.id}>
+          <path
+            d={d}
+            fill="none"
+            strokeWidth={isAlerted || isConnected ? 2 : 1.5}
+            strokeLinecap="round"
+            className={`transition-all duration-150 ${strokeClass}`}
+          />
+          {annotation && !isDimmed && (
+            <g style={{ pointerEvents: 'none' }}>
+              <rect
+                x={midX - pillW / 2}
+                y={midY - pillH / 2}
+                width={pillW}
+                height={pillH}
+                rx={pillH / 2}
+                className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-700"
+                strokeWidth={1}
+              />
+              <text
+                x={midX}
+                y={midY}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fontSize: '9px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+                className={
+                  isAlerted
+                    ? 'fill-red-500 dark:fill-red-400'
+                    : isConnected
+                    ? 'fill-indigo-500 dark:fill-indigo-400'
+                    : 'fill-slate-400 dark:fill-slate-500'
+                }
+              >
+                {annotation}
+              </text>
+            </g>
+          )}
+        </g>
       )
     })
   }
@@ -588,6 +906,57 @@ export function ProjectGraph({
           </div>
         </div>
 
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
+        {/* Edge label toggle */}
+        <button
+          onClick={() => setShowEdgeLabels((v) => !v)}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 ${
+            showEdgeLabels
+              ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-900 border border-slate-700 dark:border-slate-200'
+              : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+          }`}
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          <Tag className="w-3 h-3" />
+          Edge labels
+        </button>
+
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
+        {/* Views dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setViewsOpen((v) => !v)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 ${
+              activeViewId
+                ? 'bg-indigo-500 text-white border border-indigo-500'
+                : viewsOpen
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+            }`}
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            <Layers className="w-3 h-3" />
+            {activeViewId
+              ? ([...autoViews, ...customViews].find((v) => v.id === activeViewId)?.name ?? 'View')
+              : 'Views'}
+          </button>
+
+          {viewsOpen && (
+            <GraphViews
+              autoViews={autoViews}
+              customViews={customViews}
+              activeViewId={activeViewId}
+              canSave={!!selectedNodeId || !!activeViewId}
+              onActivate={handleActivateView}
+              onSave={handleSaveView}
+              onDelete={handleDeleteView}
+              onClose={() => setViewsOpen(false)}
+            />
+          )}
+        </div>
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -603,6 +972,21 @@ export function ProjectGraph({
             </span>
           </div>
         )}
+
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
+        {/* Inspector toggle */}
+        <button
+          onClick={() => setExplainPaneOpen((v) => !v)}
+          title={explainPaneOpen ? 'Hide inspector' : 'Show inspector'}
+          className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
+            explainPaneOpen
+              ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <PanelRight className="w-3.5 h-3.5" />
+        </button>
 
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
 
@@ -687,10 +1071,13 @@ export function ProjectGraph({
                 pointerEvents: 'none',
               }}
             >
-              {/* Lane separator lines — solid, colored per entity type */}
-              {activeLayers.slice(1).map((layerIdx) => {
-                const sepY = PADDING_Y + layerIdx * (NODE_H + V_GAP) - V_GAP / 2
-                const meta = LAYER_META[layerIdx]
+              {/* Lane separator lines — dashed for page sub-rows, solid elsewhere */}
+              {activeLayers.slice(1).map((layerIdx, i) => {
+                const prevLayerIdx = activeLayers[i]
+                const prevY = layout.layerY.get(prevLayerIdx) ?? 0
+                const curY = layout.layerY.get(layerIdx) ?? 0
+                const sepY = prevY + NODE_H + (curY - prevY - NODE_H) / 2
+                const meta = layout.layerMeta.get(layerIdx)
                 return (
                   <line
                     key={`sep-${layerIdx}`}
@@ -699,16 +1086,18 @@ export function ProjectGraph({
                     x2={layout.canvasWidth}
                     y2={sepY}
                     strokeWidth={1.5}
+                    strokeDasharray={meta?.isPageSub ? '4 4' : undefined}
                     className={meta?.sepClass ?? 'stroke-slate-300 dark:stroke-slate-600'}
                   />
                 )
               })}
 
-              {/* Lane labels — both sides, 11px monospace */}
+              {/* Lane labels — both sides, 11px monospace; skipped for page sub-rows */}
               {activeLayers.map((layerIdx) => {
-                const meta = LAYER_META[layerIdx]
-                if (!meta) return null
-                const labelY = PADDING_Y + layerIdx * (NODE_H + V_GAP) + NODE_H / 2
+                const meta = layout.layerMeta.get(layerIdx)
+                if (!meta?.label) return null
+                const y = layout.layerY.get(layerIdx) ?? 0
+                const labelY = y + NODE_H / 2
                 const labelStyle = {
                   fontSize: '11px',
                   fontFamily: "'JetBrains Mono', monospace",
@@ -754,8 +1143,14 @@ export function ProjectGraph({
               if (!pos) return null
 
               const isSelected = node.id === selectedNodeId
-              const isHighlighted = !!selectedNodeId && selectedConnections.nodes.has(node.id)
-              const isDimmed = !!selectedNodeId && !selectedConnections.nodes.has(node.id)
+              const isHighlighted = selectedNodeId
+                ? selectedConnections.nodes.has(node.id)
+                : viewFocusIds?.has(node.id) ?? false
+              const isDimmed = selectedNodeId
+                ? !selectedConnections.nodes.has(node.id)
+                : viewFocusIds
+                ? !viewFocusIds.has(node.id)
+                : false
               const isSearchMatch = searchMatches.has(node.id)
 
               return (
@@ -787,18 +1182,19 @@ export function ProjectGraph({
               anchor={actionMenuAnchor}
               node={selectedNode}
               onGoTo={() => onNodeOpen?.(selectedNode.id)}
-              onExplain={() => setExplainPaneOpen(true)}
+              onExplain={() => setExplainPaneOpen(true)}  // re-opens if hidden
               onExplore={() => handleExplore(selectedNode.id)}
               onGoToMonitoring={() => onGoToMonitoring?.(selectedNode.id)}
             />
           )}
         </div>
 
-        {/* Explain panel — slides in from the right */}
-        {explainPaneOpen && selectedNode && (
+        {/* Inspector panel — always visible when open, tracks selected node */}
+        {explainPaneOpen && (
           <NodeExplainPanel
             node={selectedNode}
             connectedNodes={panelConnectedNodes}
+            nodeEdges={selectedNodeEdges}
             nodeAlerts={panelNodeAlerts}
             onClose={() => setExplainPaneOpen(false)}
           />

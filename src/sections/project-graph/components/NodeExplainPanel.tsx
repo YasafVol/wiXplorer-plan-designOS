@@ -1,5 +1,6 @@
 import {
   X,
+  MousePointer2,
   AlertTriangle,
   Globe,
   Layout,
@@ -7,9 +8,12 @@ import {
   Database,
   FileCode2,
   BarChart3,
+  Box,
+  Zap,
 } from 'lucide-react'
 import type {
   GraphNode,
+  GraphEdge,
   Alert,
   NodeType,
   PageNodeMeta,
@@ -18,6 +22,7 @@ import type {
   CodeNodeMeta,
   AnalyticsNodeMeta,
   ProjectNodeMeta,
+  PackageNodeMeta,
 } from '@/../product/sections/project-graph/types'
 
 // ─── Type maps ────────────────────────────────────────────────────────────────
@@ -29,6 +34,7 @@ const TYPE_ICON: Record<NodeType, typeof Globe> = {
   table: Database,
   code: FileCode2,
   analytics: BarChart3,
+  package: Box,
 }
 
 const TYPE_COLOR: Record<NodeType, { header: string; icon: string; badge: string }> = {
@@ -62,6 +68,11 @@ const TYPE_COLOR: Record<NodeType, { header: string; icon: string; badge: string
     icon: 'text-amber-500',
     badge: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800',
   },
+  package: {
+    header: 'bg-fuchsia-50 dark:bg-fuchsia-950/30',
+    icon: 'text-fuchsia-500',
+    badge: 'text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950/50 border-fuchsia-200 dark:border-fuchsia-800',
+  },
 }
 
 const NODE_DESCRIPTION: Record<NodeType, string> = {
@@ -77,6 +88,8 @@ const NODE_DESCRIPTION: Record<NodeType, string> = {
     'A Velo code file containing custom frontend or backend logic. Code files can read/write CMS data, call external APIs, handle scheduled jobs, and respond to site events.',
   analytics:
     'An analytics snapshot tracking user behavior for a specific page over the last 30 days.',
+  package:
+    'An npm package that extends Wix Velo backend capabilities. Packages expose typed APIs and lifecycle event hooks that backend code files can subscribe to.',
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -100,6 +113,20 @@ function MetaRow({ label, value, mono = false }: { label: string; value: string;
   )
 }
 
+// ─── Field type badge colors ───────────────────────────────────────────────────
+
+const FIELD_TYPE_COLOR: Record<string, string> = {
+  text:     'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400',
+  number:   'bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400',
+  boolean:  'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
+  date:     'bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400',
+  richtext: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400',
+  array:    'bg-pink-50 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400',
+  object:   'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
+}
+
+// ─── NodeMeta ─────────────────────────────────────────────────────────────────
+
 function NodeMeta({ node }: { node: GraphNode }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const m = node.meta as any
@@ -122,13 +149,9 @@ function NodeMeta({ node }: { node: GraphNode }) {
         <MetaRow label="App ID" value={meta.appId} mono />
         <MetaRow label="Scope" value={meta.scope} />
         {meta.formCount != null && <MetaRow label="Forms" value={String(meta.formCount)} />}
-        {meta.productCount != null && (
-          <MetaRow label="Products" value={String(meta.productCount)} />
-        )}
+        {meta.productCount != null && <MetaRow label="Products" value={String(meta.productCount)} />}
         {meta.postCount != null && <MetaRow label="Posts" value={String(meta.postCount)} />}
-        {meta.languages && (
-          <MetaRow label="Languages" value={meta.languages.join(', ')} />
-        )}
+        {meta.languages && <MetaRow label="Languages" value={meta.languages.join(', ')} />}
       </div>
     )
   }
@@ -136,10 +159,45 @@ function NodeMeta({ node }: { node: GraphNode }) {
   if (node.type === 'table') {
     const meta = m as TableNodeMeta
     return (
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         <MetaRow label="Collection" value={meta.collectionId} mono />
         <MetaRow label="Rows" value={meta.rowCount.toLocaleString()} />
-        <MetaRow label="Fields" value={String(meta.schema?.length ?? 0)} />
+        {meta.schema && meta.schema.length > 0 && (
+          <div className="pt-1.5">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-500 mb-1.5"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Schema — {meta.schema.length} fields
+            </p>
+            <div className="rounded-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
+              {meta.schema.map((field, i) => (
+                <div
+                  key={field.field}
+                  className={`flex items-center justify-between gap-3 px-2.5 py-1.5 ${
+                    i % 2 === 0
+                      ? 'bg-slate-50 dark:bg-slate-800/50'
+                      : 'bg-white dark:bg-slate-900'
+                  }`}
+                >
+                  <span
+                    className="text-[11px] text-slate-600 dark:text-slate-300 font-mono truncate"
+                  >
+                    {field.field}
+                  </span>
+                  <span
+                    className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                      FIELD_TYPE_COLOR[field.type] ?? FIELD_TYPE_COLOR.object
+                    }`}
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    {field.type}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -149,14 +207,12 @@ function NodeMeta({ node }: { node: GraphNode }) {
     return (
       <div className="space-y-0.5">
         <MetaRow label="Path" value={meta.path} mono />
-        <MetaRow label="Type" value={meta.fileType} />
+        <MetaRow label="Context" value={meta.fileType === 'backend' ? 'Server' : 'Client'} />
         <MetaRow label="Lines" value={String(meta.linesOfCode)} />
         <MetaRow
           label="Modified"
           value={new Date(meta.lastModified).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
+            year: 'numeric', month: 'short', day: 'numeric',
           })}
         />
         {meta.schedule && <MetaRow label="Schedule" value={meta.schedule} mono />}
@@ -192,9 +248,7 @@ function NodeMeta({ node }: { node: GraphNode }) {
         <MetaRow
           label="Published"
           value={new Date(meta.publishedAt).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
+            year: 'numeric', month: 'short', day: 'numeric',
           })}
         />
         <MetaRow label="Pages" value={String(meta.totalPages)} />
@@ -203,14 +257,132 @@ function NodeMeta({ node }: { node: GraphNode }) {
     )
   }
 
+  if (node.type === 'package') {
+    const meta = m as PackageNodeMeta
+    return (
+      <div className="space-y-1">
+        <MetaRow label="Package" value={meta.packageName} mono />
+        <MetaRow label="Version" value={meta.version} mono />
+        {meta.registeredEvents && meta.registeredEvents.length > 0 && (
+          <div className="pt-1.5">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider text-fuchsia-600 dark:text-fuchsia-400 mb-1.5"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Registered Events
+            </p>
+            <div className="space-y-1">
+              {meta.registeredEvents.map((evt) => (
+                <div
+                  key={evt}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-950/30 border border-fuchsia-100 dark:border-fuchsia-900/50"
+                >
+                  <Zap className="w-3 h-3 shrink-0 text-fuchsia-500" />
+                  <span
+                    className="text-[11px] font-mono text-fuchsia-700 dark:text-fuchsia-300"
+                  >
+                    {evt}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return null
+}
+
+// ─── Page Internals ───────────────────────────────────────────────────────────
+// Structured breakdown of what's on/connected to a page, derived from edges.
+
+function PageInternals({
+  node,
+  connectedNodes,
+  nodeEdges,
+}: {
+  node: GraphNode
+  connectedNodes: GraphNode[]
+  nodeEdges: GraphEdge[]
+}) {
+  const nodeMap = new Map(connectedNodes.map((n) => [n.id, n]))
+
+  const onPage: GraphNode[] = []   // hosted apps + client code
+  const data: GraphNode[] = []     // tables / datasets
+  const childPages: GraphNode[] = []
+
+  nodeEdges.forEach((e) => {
+    const other = e.source === node.id ? nodeMap.get(e.target) : nodeMap.get(e.source)
+    if (!other) return
+    if ((e.type === 'hosts' || e.type === 'contains') && e.source === node.id) {
+      if (other.type === 'app' || other.type === 'code') onPage.push(other)
+      if (other.type === 'page') childPages.push(other)
+    }
+    if (e.type === 'reads' || e.type === 'manages') {
+      if (other.type === 'table') data.push(other)
+    }
+  })
+
+  const sections = [
+    { label: 'On this page', items: onPage, color: 'text-indigo-500' },
+    { label: 'Data layer', items: data, color: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Sub-pages', items: childPages, color: 'text-indigo-400' },
+  ].filter((s) => s.items.length > 0)
+
+  if (sections.length === 0) return null
+
+  return (
+    <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800/60">
+      <p
+        className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500 dark:text-indigo-400 mb-2.5"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        Page Internals
+      </p>
+      <div className="space-y-3">
+        {sections.map(({ label, items, color }) => (
+          <div key={label}>
+            <p
+              className={`text-[9px] font-bold uppercase tracking-wider mb-1.5 ${color}`}
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              {label}
+            </p>
+            <div className="space-y-1 pl-2">
+              {items.map((n) => {
+                const Icon = TYPE_ICON[n.type]
+                const c = TYPE_COLOR[n.type]
+                return (
+                  <div key={n.id} className="flex items-center gap-2">
+                    <Icon className={`w-3 h-3 shrink-0 ${c.icon}`} />
+                    <span
+                      className="text-[11px] text-slate-600 dark:text-slate-400 truncate"
+                      style={{ fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {n.label}
+                    </span>
+                    {n.alertCount > 0 && (
+                      <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-red-400" />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface NodeExplainPanelProps {
-  node: GraphNode
+  node: GraphNode | null
   connectedNodes: GraphNode[]
+  nodeEdges?: GraphEdge[]
   nodeAlerts: Alert[]
   onClose: () => void
 }
@@ -218,9 +390,43 @@ interface NodeExplainPanelProps {
 export function NodeExplainPanel({
   node,
   connectedNodes,
+  nodeEdges = [],
   nodeAlerts,
   onClose,
 }: NodeExplainPanelProps) {
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  if (!node) {
+    return (
+      <div className="w-72 shrink-0 flex flex-col border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+          <span
+            className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            Inspector
+          </span>
+          <button
+            onClick={onClose}
+            className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+          <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+            <MousePointer2 className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+          </div>
+          <p
+            className="text-[12px] text-slate-400 dark:text-slate-500 leading-relaxed"
+            style={{ fontFamily: "'Inter', sans-serif" }}
+          >
+            Select a node to inspect its details and connections
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const Icon = TYPE_ICON[node.type]
   const colors = TYPE_COLOR[node.type]
 
@@ -327,6 +533,15 @@ export function NodeExplainPanel({
               ))}
             </div>
           </div>
+        )}
+
+        {/* Page internals drill-down — only for page nodes */}
+        {node.type === 'page' && (
+          <PageInternals
+            node={node}
+            connectedNodes={[...connectedNodes, node]}
+            nodeEdges={nodeEdges}
+          />
         )}
 
         {/* Connections */}

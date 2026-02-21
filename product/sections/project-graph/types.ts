@@ -1,10 +1,10 @@
-export type NodeType = 'project' | 'page' | 'app' | 'table' | 'code' | 'analytics'
+export type NodeType = 'project' | 'page' | 'app' | 'table' | 'code' | 'analytics' | 'package'
 
-export type EdgeType = 'contains' | 'hosts' | 'manages' | 'reads' | 'depends_on' | 'tracks'
+export type EdgeType = 'contains' | 'hosts' | 'manages' | 'reads' | 'depends_on' | 'tracks' | 'imports' | 'triggers'
 
 export type AlertSeverity = 'error' | 'warning' | 'info'
 
-export type SourceSystem = 'DM' | 'DevCenter' | 'CMS' | 'Velo' | 'Analytics'
+export type SourceSystem = 'DM' | 'DevCenter' | 'CMS' | 'Velo' | 'Analytics' | 'NPM'
 
 export interface SchemaField {
   field: string
@@ -45,6 +45,12 @@ export interface CodeNodeMeta {
   description?: string
 }
 
+export interface PackageNodeMeta {
+  packageName: string
+  version: string
+  registeredEvents: string[]
+}
+
 export interface AnalyticsNodeMeta {
   pageId: string
   views30d: number
@@ -65,7 +71,7 @@ export interface GraphNode {
   type: NodeType
   label: string
   source: SourceSystem
-  meta: PageNodeMeta | AppNodeMeta | TableNodeMeta | CodeNodeMeta | AnalyticsNodeMeta | ProjectNodeMeta | Record<string, unknown>
+  meta: PageNodeMeta | AppNodeMeta | TableNodeMeta | CodeNodeMeta | AnalyticsNodeMeta | ProjectNodeMeta | PackageNodeMeta | Record<string, unknown>
   alertCount: number
 }
 

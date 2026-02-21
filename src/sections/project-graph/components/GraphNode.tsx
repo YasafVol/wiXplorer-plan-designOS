@@ -1,4 +1,4 @@
-import { Globe, Layout, Package, Database, FileCode2, BarChart3 } from 'lucide-react'
+import { Globe, Layout, Package, Database, FileCode2, BarChart3, Box } from 'lucide-react'
 import type { GraphNode as GraphNodeType, NodeType } from '@/../product/sections/project-graph/types'
 
 export const NODE_W = 144
@@ -63,6 +63,14 @@ const NODE_CONFIGS: Record<NodeType, NodeTypeConfig> = {
     sourceClass: 'text-amber-400/70 dark:text-amber-500/60',
     ringClass: 'ring-amber-500',
     label: 'Analytics',
+  },
+  package: {
+    Icon: Box,
+    borderClass: 'border-l-fuchsia-500',
+    iconClass: 'text-fuchsia-500 dark:text-fuchsia-400',
+    sourceClass: 'text-fuchsia-400/70 dark:text-fuchsia-500/60',
+    ringClass: 'ring-fuchsia-500',
+    label: 'Package',
   },
 }
 

@@ -456,6 +456,76 @@
       "alertCount": 0
     },
     {
+      "id": "node-page-members",
+      "type": "page",
+      "label": "Members",
+      "source": "DM",
+      "meta": {
+        "url": "/members",
+        "title": "Members Area",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-members",
+      "type": "app",
+      "label": "Wix Members",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-members",
+        "scope": "site",
+        "isManaged": true
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-table-members",
+      "type": "table",
+      "label": "Members",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "Members",
+        "rowCount": 847,
+        "schema": [
+          { "field": "_id",            "type": "text" },
+          { "field": "name",           "type": "text" },
+          { "field": "email",          "type": "text" },
+          { "field": "joinDate",       "type": "date" },
+          { "field": "plan",           "type": "text" },
+          { "field": "referralSource", "type": "text" }
+        ]
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-code-events",
+      "type": "code",
+      "label": "events.jsw",
+      "source": "Velo",
+      "meta": {
+        "path": "backend/events.jsw",
+        "fileType": "backend",
+        "linesOfCode": 42,
+        "lastModified": "2026-02-18T14:20:00Z",
+        "description": "Listens to onMemberCreated via @wix/members; writes a welcome record to the Members collection and queues the onboarding email"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-pkg-wix-members",
+      "type": "package",
+      "label": "@wix/members",
+      "source": "NPM",
+      "meta": {
+        "packageName": "@wix/members",
+        "version": "2.1.0",
+        "registeredEvents": ["onMemberCreated", "onMemberDeleted", "onMemberUpdated"]
+      },
+      "alertCount": 0
+    },
+    {
       "id": "node-analytics-home",
       "type": "analytics",
       "label": "Analytics: Landing Page",
@@ -488,14 +558,7 @@
   "edges": [
     { "id": "e-project-home",        "source": "node-project",           "target": "node-page-home",         "type": "contains",   "hasAlert": false },
     { "id": "e-project-blog",        "source": "node-project",           "target": "node-page-blog",         "type": "contains",   "hasAlert": false },
-    { "id": "e-project-article-1",   "source": "node-project",           "target": "node-page-article-1",    "type": "contains",   "hasAlert": false },
-    { "id": "e-project-article-2",   "source": "node-project",           "target": "node-page-article-2",    "type": "contains",   "hasAlert": false },
-    { "id": "e-project-article-3",   "source": "node-project",           "target": "node-page-article-3",    "type": "contains",   "hasAlert": false },
-    { "id": "e-project-article-4",   "source": "node-project",           "target": "node-page-article-4",    "type": "contains",   "hasAlert": false },
     { "id": "e-project-shop",        "source": "node-project",           "target": "node-page-shop",         "type": "contains",   "hasAlert": false },
-    { "id": "e-project-cart",        "source": "node-project",           "target": "node-page-cart",         "type": "contains",   "hasAlert": false },
-    { "id": "e-project-checkout",    "source": "node-project",           "target": "node-page-checkout",     "type": "contains",   "hasAlert": false },
-    { "id": "e-project-thank-you",   "source": "node-project",           "target": "node-page-thank-you",    "type": "contains",   "hasAlert": false },
     { "id": "e-project-about",       "source": "node-project",           "target": "node-page-about",        "type": "contains",   "hasAlert": false },
     { "id": "e-project-contact",     "source": "node-project",           "target": "node-page-contact",      "type": "contains",   "hasAlert": false },
     { "id": "e-project-404",         "source": "node-project",           "target": "node-page-404",          "type": "contains",   "hasAlert": false },
@@ -507,14 +570,21 @@
     { "id": "e-home-analytics",      "source": "node-page-home",         "target": "node-analytics-home",    "type": "tracks",     "hasAlert": false },
 
     { "id": "e-blog-blog-app",       "source": "node-page-blog",         "target": "node-app-blog",          "type": "hosts",      "hasAlert": false },
-    { "id": "e-blog-article-1",      "source": "node-app-blog",          "target": "node-page-article-1",    "type": "manages",    "hasAlert": false },
-    { "id": "e-blog-article-2",      "source": "node-app-blog",          "target": "node-page-article-2",    "type": "manages",    "hasAlert": false },
-    { "id": "e-blog-article-3",      "source": "node-app-blog",          "target": "node-page-article-3",    "type": "manages",    "hasAlert": false },
-    { "id": "e-blog-article-4",      "source": "node-app-blog",          "target": "node-page-article-4",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-to-article-1",   "source": "node-page-blog",         "target": "node-page-article-1",    "type": "contains",   "hasAlert": false },
+    { "id": "e-blog-to-article-2",   "source": "node-page-blog",         "target": "node-page-article-2",    "type": "contains",   "hasAlert": false },
+    { "id": "e-blog-to-article-3",   "source": "node-page-blog",         "target": "node-page-article-3",    "type": "contains",   "hasAlert": false },
+    { "id": "e-blog-to-article-4",   "source": "node-page-blog",         "target": "node-page-article-4",    "type": "contains",   "hasAlert": false },
+    { "id": "e-blog-app-article-1",  "source": "node-app-blog",          "target": "node-page-article-1",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-app-article-2",  "source": "node-app-blog",          "target": "node-page-article-2",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-app-article-3",  "source": "node-app-blog",          "target": "node-page-article-3",    "type": "manages",    "hasAlert": false },
+    { "id": "e-blog-app-article-4",  "source": "node-app-blog",          "target": "node-page-article-4",    "type": "manages",    "hasAlert": false },
     { "id": "e-blog-blogposts",      "source": "node-app-blog",          "target": "node-table-blogposts",   "type": "manages",    "hasAlert": false },
 
     { "id": "e-shop-stores",         "source": "node-page-shop",         "target": "node-app-stores",        "type": "hosts",      "hasAlert": false },
     { "id": "e-shop-analytics",      "source": "node-page-shop",         "target": "node-analytics-shop",    "type": "tracks",     "hasAlert": false },
+    { "id": "e-shop-to-cart",        "source": "node-page-shop",         "target": "node-page-cart",         "type": "contains",   "hasAlert": false },
+    { "id": "e-cart-to-checkout",    "source": "node-page-cart",         "target": "node-page-checkout",     "type": "contains",   "hasAlert": false },
+    { "id": "e-checkout-to-thank-you","source": "node-page-checkout",    "target": "node-page-thank-you",    "type": "contains",   "hasAlert": false },
     { "id": "e-stores-cart",         "source": "node-app-stores",        "target": "node-page-cart",         "type": "manages",    "hasAlert": false },
     { "id": "e-stores-checkout",     "source": "node-app-stores",        "target": "node-page-checkout",     "type": "manages",    "hasAlert": false },
     { "id": "e-stores-thank-you",    "source": "node-app-stores",        "target": "node-page-thank-you",    "type": "manages",    "hasAlert": false },
@@ -531,10 +601,17 @@
     { "id": "e-forms-mailinglist",   "source": "node-app-forms",         "target": "node-table-mailinglist", "type": "manages",    "hasAlert": false },
     { "id": "e-forms-contacts",      "source": "node-app-forms",         "target": "node-table-contacts",    "type": "manages",    "hasAlert": false },
 
-    { "id": "e-cron-mailinglist",    "source": "node-code-backup-cron",  "target": "node-table-mailinglist", "type": "reads",      "hasAlert": true  },
-    { "id": "e-email-mailinglist",   "source": "node-code-email-trigger","target": "node-table-mailinglist", "type": "reads",      "hasAlert": false },
-    { "id": "e-cron-router",         "source": "node-code-backup-cron",  "target": "node-code-router",       "type": "depends_on", "hasAlert": false },
-    { "id": "e-email-router",        "source": "node-code-email-trigger","target": "node-code-router",       "type": "depends_on", "hasAlert": false }
+    { "id": "e-cron-mailinglist",        "source": "node-code-backup-cron",  "target": "node-table-mailinglist",  "type": "reads",      "hasAlert": true  },
+    { "id": "e-email-mailinglist",       "source": "node-code-email-trigger","target": "node-table-mailinglist",  "type": "reads",      "hasAlert": false },
+    { "id": "e-cron-router",             "source": "node-code-backup-cron",  "target": "node-code-router",        "type": "depends_on", "hasAlert": false },
+    { "id": "e-email-router",            "source": "node-code-email-trigger","target": "node-code-router",        "type": "depends_on", "hasAlert": false },
+
+    { "id": "e-project-members",         "source": "node-project",           "target": "node-page-members",       "type": "contains",   "hasAlert": false },
+    { "id": "e-members-page-app",        "source": "node-page-members",      "target": "node-app-members",        "type": "hosts",      "hasAlert": false },
+    { "id": "e-app-members-table",       "source": "node-app-members",       "target": "node-table-members",      "type": "manages",    "hasAlert": false },
+    { "id": "e-app-members-events",      "source": "node-app-members",       "target": "node-code-events",        "type": "triggers",   "hasAlert": false },
+    { "id": "e-events-pkg-members",      "source": "node-code-events",       "target": "node-pkg-wix-members",    "type": "imports",    "hasAlert": false },
+    { "id": "e-events-table-members",    "source": "node-code-events",       "target": "node-table-members",      "type": "reads",      "hasAlert": false }
   ],
 
   "alerts": [
@@ -553,6 +630,7 @@
     { "type": "app",       "label": "Apps",       "color": "cyan",    "enabled": true },
     { "type": "table",     "label": "Tables",     "color": "emerald", "enabled": true },
     { "type": "code",      "label": "Code",       "color": "violet",  "enabled": true },
+    { "type": "package",   "label": "Packages",   "color": "fuchsia", "enabled": true },
     { "type": "analytics", "label": "Analytics",  "color": "amber",   "enabled": true }
   ]
 }
