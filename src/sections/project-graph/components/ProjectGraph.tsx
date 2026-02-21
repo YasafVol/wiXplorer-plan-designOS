@@ -347,23 +347,29 @@ function computeLayout(
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
+interface ProjectGraphExtendedProps extends ProjectGraphProps {
+  /** Pre-select this node on mount (e.g. when navigating from the inventory table) */
+  initialSelectedNodeId?: string
+}
+
 export function ProjectGraph({
   project,
   nodes,
   edges,
   alerts,
   layerFilters,
+  initialSelectedNodeId,
   onNodeSelect,
   onNodeOpen,
   onLayerToggle,
   onSearch,
   onFitToScreen,
   onGoToMonitoring,
-}: ProjectGraphProps) {
+}: ProjectGraphExtendedProps) {
   const [activeTypes, setActiveTypes] = useState<Set<NodeType>>(
     () => new Set(layerFilters.filter((f) => f.enabled).map((f) => f.type))
   )
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialSelectedNodeId ?? null)
   const [highlightDepth, setHighlightDepth] = useState<1 | 2>(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [transform, setTransform] = useState({ x: 40, y: 24, scale: 0.75 })
@@ -374,7 +380,7 @@ export function ProjectGraph({
   const [viewsOpen, setViewsOpen] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const dragState = useRef({ isDragging: false, startX: 0, startY: 0, startTX: 0, startTY: 0 })
+  const dragState = useRef({ isDragging: false, hasDragged: false, startX: 0, startY: 0, startTX: 0, startTY: 0 })
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const layout = useMemo(() => computeLayout(project, nodes, edges), [project, nodes, edges])
@@ -661,6 +667,7 @@ export function ProjectGraph({
       if ((e.target as HTMLElement).closest('[data-node]')) return
       dragState.current = {
         isDragging: true,
+        hasDragged: false,
         startX: e.clientX,
         startY: e.clientY,
         startTX: transform.x,
@@ -671,12 +678,18 @@ export function ProjectGraph({
   )
 
   useEffect(() => {
+    const DRAG_THRESHOLD = 4
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragState.current.isDragging) return
+      const dx = e.clientX - dragState.current.startX
+      const dy = e.clientY - dragState.current.startY
+      if (!dragState.current.hasDragged && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+        dragState.current.hasDragged = true
+      }
       setTransform((prev) => ({
         ...prev,
-        x: dragState.current.startTX + (e.clientX - dragState.current.startX),
-        y: dragState.current.startTY + (e.clientY - dragState.current.startY),
+        x: dragState.current.startTX + dx,
+        y: dragState.current.startTY + dy,
       }))
     }
     const handleMouseUp = () => {
@@ -1034,6 +1047,7 @@ export function ProjectGraph({
           onMouseDown={handleMouseDown}
           onWheel={handleWheel}
           onClick={(e) => {
+            if (dragState.current.hasDragged) return
             if (!(e.target as HTMLElement).closest('[data-node]')) {
               clearSelection()
             }

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Globe, Layers, GitBranch, Link2 } from 'lucide-react'
+import { ArrowRight, Globe, Layers, GitBranch, Link2, Table2 } from 'lucide-react'
 import { PROJECTS } from '@/projects'
 import type { ProjectMeta } from '@/projects'
 
@@ -67,15 +67,26 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
         ))}
       </div>
 
-      {/* Load button */}
-      <button
-        onClick={() => navigate(`/projects/${project.id}`)}
-        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-sm font-semibold hover:bg-stone-700 dark:hover:bg-white transition-colors"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
-        Open in graph
-        <ArrowRight className="w-4 h-4" />
-      </button>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => navigate(`/projects/${project.id}`)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-sm font-semibold hover:bg-stone-700 dark:hover:bg-white transition-colors"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          Open in graph
+          <ArrowRight className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => navigate(`/projects/${project.id}/inventory`)}
+          title="Open inventory table"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm font-semibold hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600 transition-colors"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          <Table2 className="w-4 h-4" />
+          Inventory
+        </button>
+      </div>
     </div>
   )
 }

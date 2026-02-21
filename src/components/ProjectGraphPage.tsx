@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { getProject } from '@/projects'
 import { ProjectGraph } from '@/sections/project-graph/components'
@@ -7,6 +7,8 @@ import type { NodeType } from '@/../product/sections/project-graph/types'
 export function ProjectGraphPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const focusNodeId = (location.state as { focusNodeId?: string } | null)?.focusNodeId
 
   const project = projectId ? getProject(projectId) : undefined
 
@@ -68,6 +70,7 @@ export function ProjectGraphPage() {
           edges={data.edges as any}
           alerts={data.alerts as any}
           layerFilters={data.layerFilters as any}
+          initialSelectedNodeId={focusNodeId}
           onNodeSelect={(id) => console.log('[wiXplorer] Node selected:', id)}
           onNodeOpen={(id) => console.log('[wiXplorer] Open entity detail:', id)}
           onLayerToggle={(type: NodeType) => console.log('[wiXplorer] Layer toggled:', type)}

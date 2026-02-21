@@ -9,6 +9,7 @@ import { ShellDesignPage, ShellDesignFullscreen } from '@/components/ShellDesign
 import { ExportPage } from '@/components/ExportPage'
 import { ProjectsPage } from '@/components/ProjectsPage'
 import { ProjectGraphPage } from '@/components/ProjectGraphPage'
+import { ProjectInventoryPage } from '@/components/ProjectInventoryPage'
 
 export const router = createBrowserRouter([
   {
@@ -58,5 +59,9 @@ export const router = createBrowserRouter([
   {
     path: '/projects/:projectId',
     element: <ProjectGraphPage />,
+  },
+  {
+    path: '/projects/:projectId/inventory',
+    element: <ProjectInventoryPage />,
   },
 ])
