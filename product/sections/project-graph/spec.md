@@ -238,7 +238,7 @@ Cluster ID = `cluster-{rootPageId}`. Membership is deterministic and reproducibl
 
 ### Toolbar toggle
 
-A **Clusters** button (Folder / FolderOpen icon) in the toolbar enables and disables clustering mode. Disabling clustering resets all expanded clusters to collapsed.
+A **Clusters** button (Folder / FolderOpen icon) in the toolbar enables and disables clustering mode. **Clustering is on by default.** Disabling clustering resets all expanded clusters to collapsed.
 
 ### Default state (Overview)
 

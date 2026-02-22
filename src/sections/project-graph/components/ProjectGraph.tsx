@@ -376,7 +376,7 @@ export function ProjectGraph({
   const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [customViews, setCustomViews] = useState<GraphView[]>([])
   const [viewsOpen, setViewsOpen] = useState(false)
-  const [clusteringEnabled, setClusteringEnabled] = useState(false)
+  const [clusteringEnabled, setClusteringEnabled] = useState(true)
   const [expandedClusterIds, setExpandedClusterIds] = useState<Set<string>>(new Set())
 
   const containerRef = useRef<HTMLDivElement>(null)
