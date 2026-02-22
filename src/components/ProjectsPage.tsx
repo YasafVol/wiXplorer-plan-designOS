@@ -31,7 +31,7 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
 
       {/* Description */}
       <p
-        className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed"
+        className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed h-[88px] overflow-hidden"
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
         {project.description}
