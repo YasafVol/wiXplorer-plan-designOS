@@ -64,7 +64,7 @@ export function ShellDesignPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/design')}
+            onClick={() => navigate('/design-os/design')}
             className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 -ml-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
@@ -121,7 +121,7 @@ export function ShellDesignPage() {
             </span>
             <ThemeToggle />
             <a
-              href="/shell/design/fullscreen"
+              href="/design-os/shell/design/fullscreen"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
@@ -154,7 +154,7 @@ export function ShellDesignPage() {
           style={{ width: previewWidth, minWidth: MIN_WIDTH, maxWidth: '100%' }}
         >
           <iframe
-            src="/shell/design/fullscreen"
+            src="/design-os/shell/design/fullscreen"
             className="w-full h-full border-0"
             title="Shell Preview"
           />

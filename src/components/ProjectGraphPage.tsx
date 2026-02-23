@@ -23,7 +23,7 @@ export function ProjectGraphPage() {
             Project not found: <code className="font-mono">{projectId}</code>
           </p>
           <button
-            onClick={() => navigate('/projects')}
+            onClick={() => navigate('/')}
             className="text-sm text-stone-600 dark:text-stone-400 underline underline-offset-2"
           >
             Back to projects
@@ -40,7 +40,7 @@ export function ProjectGraphPage() {
       {/* Minimal header bar */}
       <div className="shrink-0 flex items-center gap-3 px-3 py-2 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800">
         <button
-          onClick={() => navigate('/projects')}
+          onClick={() => navigate('/')}
           className="flex items-center gap-1.5 text-[11px] font-medium text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >

@@ -46,10 +46,10 @@ export function PhaseWarningBanner() {
   // Build the warning message
   const missingPhases: { name: string; path: string }[] = []
   if (!hasDataShape) {
-    missingPhases.push({ name: 'Data Shape', path: '/data-shape' })
+    missingPhases.push({ name: 'Data Shape', path: '/design-os/data-shape' })
   }
   if (!hasDesign) {
-    missingPhases.push({ name: 'Design', path: '/design' })
+    missingPhases.push({ name: 'Design', path: '/design-os/design' })
   }
 
   return (

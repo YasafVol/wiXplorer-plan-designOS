@@ -212,7 +212,7 @@ export function DesignPage() {
                 {shell.hasComponents && (
                   <div className="pt-2 border-t border-stone-100 dark:border-stone-800">
                     <Link
-                      to="/shell/design"
+                      to="/design-os/shell/design"
                       className="flex items-center justify-between gap-4 py-2 hover:text-stone-900 dark:hover:text-stone-100 transition-colors group"
                     >
                       <div className="flex items-center gap-3">

@@ -71,7 +71,7 @@ export function ScreenDesignPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/sections/${sectionId}`)}
+            onClick={() => navigate(`/design-os/sections/${sectionId}`)}
             className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 -ml-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
@@ -134,7 +134,7 @@ export function ScreenDesignPage() {
             </span>
             <ThemeToggle />
             <a
-              href={`/sections/${sectionId}/screen-designs/${screenDesignName}/fullscreen`}
+              href={`/design-os/sections/${sectionId}/screen-designs/${screenDesignName}/fullscreen`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
@@ -167,7 +167,7 @@ export function ScreenDesignPage() {
           style={{ width: previewWidth, minWidth: MIN_WIDTH, maxWidth: '100%' }}
         >
           <iframe
-            src={`/sections/${sectionId}/screen-designs/${screenDesignName}/fullscreen`}
+            src={`/design-os/sections/${sectionId}/screen-designs/${screenDesignName}/fullscreen`}
             className="w-full h-full border-0"
             title="Screen Design Preview"
           />

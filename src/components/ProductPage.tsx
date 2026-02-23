@@ -77,7 +77,7 @@ export function ProductPage() {
             {productData.roadmap ? (
               <SectionsCard
                 roadmap={productData.roadmap}
-                onSectionClick={(sectionId) => navigate(`/sections/${sectionId}`)}
+                onSectionClick={(sectionId) => navigate(`/design-os/sections/${sectionId}`)}
               />
             ) : (
               <EmptyState type="roadmap" />

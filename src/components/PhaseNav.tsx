@@ -14,11 +14,11 @@ interface PhaseConfig {
 }
 
 const phases: PhaseConfig[] = [
-  { id: 'product', label: 'Product', icon: FileText, path: '/' },
-  { id: 'data-shape', label: 'Data Shape', icon: Boxes, path: '/data-shape' },
-  { id: 'design', label: 'Design', icon: Layout, path: '/design' },
-  { id: 'sections', label: 'Sections', icon: LayoutList, path: '/sections' },
-  { id: 'export', label: 'Export', icon: Package, path: '/export' },
+  { id: 'product', label: 'Product', icon: FileText, path: '/design-os' },
+  { id: 'data-shape', label: 'Data Shape', icon: Boxes, path: '/design-os/data-shape' },
+  { id: 'design', label: 'Design', icon: Layout, path: '/design-os/design' },
+  { id: 'sections', label: 'Sections', icon: LayoutList, path: '/design-os/sections' },
+  { id: 'export', label: 'Export', icon: Package, path: '/design-os/export' },
 ]
 
 export type PhaseStatus = 'completed' | 'current' | 'upcoming'
@@ -50,15 +50,15 @@ function usePhaseStatuses(): PhaseInfo[] {
   const currentPath = location.pathname
   let currentPhaseId: Phase = 'product'
 
-  if (currentPath === '/' || currentPath === '/product') {
+  if (currentPath === '/design-os' || currentPath === '/design-os/product') {
     currentPhaseId = 'product'
-  } else if (currentPath === '/data-shape') {
+  } else if (currentPath === '/design-os/data-shape') {
     currentPhaseId = 'data-shape'
-  } else if (currentPath === '/design' || currentPath === '/design-system' || currentPath.startsWith('/shell')) {
+  } else if (currentPath === '/design-os/design' || currentPath === '/design-os/design-system' || currentPath.startsWith('/design-os/shell')) {
     currentPhaseId = 'design'
-  } else if (currentPath === '/sections' || currentPath.startsWith('/sections/')) {
+  } else if (currentPath === '/design-os/sections' || currentPath.startsWith('/design-os/sections/')) {
     currentPhaseId = 'sections'
-  } else if (currentPath === '/export') {
+  } else if (currentPath === '/design-os/export') {
     currentPhaseId = 'export'
   }
 

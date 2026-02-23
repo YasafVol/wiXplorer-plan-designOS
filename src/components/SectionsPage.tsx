@@ -92,7 +92,7 @@ export function SectionsPage() {
                   return (
                     <li key={section.id}>
                       <button
-                        onClick={() => navigate(`/sections/${section.id}`)}
+                        onClick={() => navigate(`/design-os/sections/${section.id}`)}
                         className="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
                       >
                         <div className="flex items-start gap-4 min-w-0">

@@ -12,48 +12,9 @@ import { ProjectGraphPage } from '@/components/ProjectGraphPage'
 import { ProjectInventoryPage } from '@/components/ProjectInventoryPage'
 
 export const router = createBrowserRouter([
+  // wiXplorer — main app
   {
     path: '/',
-    element: <ProductPage />,
-  },
-  {
-    path: '/data-shape',
-    element: <DataShapePage />,
-  },
-  {
-    path: '/design',
-    element: <DesignPage />,
-  },
-  {
-    path: '/sections',
-    element: <SectionsPage />,
-  },
-  {
-    path: '/sections/:sectionId',
-    element: <SectionPage />,
-  },
-  {
-    path: '/sections/:sectionId/screen-designs/:screenDesignName',
-    element: <ScreenDesignPage />,
-  },
-  {
-    path: '/sections/:sectionId/screen-designs/:screenDesignName/fullscreen',
-    element: <ScreenDesignFullscreen />,
-  },
-  {
-    path: '/shell/design',
-    element: <ShellDesignPage />,
-  },
-  {
-    path: '/shell/design/fullscreen',
-    element: <ShellDesignFullscreen />,
-  },
-  {
-    path: '/export',
-    element: <ExportPage />,
-  },
-  {
-    path: '/projects',
     element: <ProjectsPage />,
   },
   {
@@ -63,5 +24,46 @@ export const router = createBrowserRouter([
   {
     path: '/projects/:projectId/inventory',
     element: <ProjectInventoryPage />,
+  },
+  // Design OS — planning tool
+  {
+    path: '/design-os',
+    element: <ProductPage />,
+  },
+  {
+    path: '/design-os/data-shape',
+    element: <DataShapePage />,
+  },
+  {
+    path: '/design-os/design',
+    element: <DesignPage />,
+  },
+  {
+    path: '/design-os/sections',
+    element: <SectionsPage />,
+  },
+  {
+    path: '/design-os/sections/:sectionId',
+    element: <SectionPage />,
+  },
+  {
+    path: '/design-os/sections/:sectionId/screen-designs/:screenDesignName',
+    element: <ScreenDesignPage />,
+  },
+  {
+    path: '/design-os/sections/:sectionId/screen-designs/:screenDesignName/fullscreen',
+    element: <ScreenDesignFullscreen />,
+  },
+  {
+    path: '/design-os/shell/design',
+    element: <ShellDesignPage />,
+  },
+  {
+    path: '/design-os/shell/design/fullscreen',
+    element: <ShellDesignFullscreen />,
+  },
+  {
+    path: '/design-os/export',
+    element: <ExportPage />,
   },
 ])
