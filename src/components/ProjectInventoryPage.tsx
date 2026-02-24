@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown,
   AlertTriangle, Network, Globe, Package, Database,
-  FileCode2, Box, BarChart3, ExternalLink,
+  FileCode2,
 } from 'lucide-react'
 import { getProject } from '@/projects'
 
@@ -687,6 +687,24 @@ export function ProjectInventoryPage() {
     )
   }
 
+  if (project.id === 'main-code') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950">
+        <div className="text-center space-y-3">
+          <p className="text-stone-600 dark:text-stone-400 text-sm">
+            Inventory view is disabled for Main Code.
+          </p>
+          <button
+            onClick={() => navigate(`/projects/${projectId}/alt-code-view`)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30 text-sm"
+          >
+            Open Alt-code view
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const counts: Record<Tab, number> = {
     pages: inventory.pages.length,
     apps: inventory.apps.length,
@@ -695,7 +713,8 @@ export function ProjectInventoryPage() {
   }
 
   const handleOpenGraph = (nodeId: string) => {
-    navigate(`/projects/${projectId}`, { state: { focusNodeId: nodeId } })
+    const targetPath = `/projects/${projectId}`
+    navigate(targetPath, { state: { focusNodeId: nodeId } })
   }
 
   return (

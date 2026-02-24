@@ -77,15 +77,27 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
           Open in graph
           <ArrowRight className="w-4 h-4" />
         </button>
-        <button
-          onClick={() => navigate(`/projects/${project.id}/inventory`)}
-          title="Open inventory table"
-          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm font-semibold hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600 transition-colors"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-        >
-          <Table2 className="w-4 h-4" />
-          Inventory
-        </button>
+        {project.id === 'main-code' && (
+          <button
+            onClick={() => navigate(`/projects/${project.id}/alt-code-view`)}
+            title="Open Alt-code view"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            Alt-code view
+          </button>
+        )}
+        {project.id !== 'main-code' && (
+          <button
+            onClick={() => navigate(`/projects/${project.id}/inventory`)}
+            title="Open inventory table"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm font-semibold hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600 transition-colors"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            <Table2 className="w-4 h-4" />
+            Inventory
+          </button>
+        )}
       </div>
     </div>
   )

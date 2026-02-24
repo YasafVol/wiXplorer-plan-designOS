@@ -1,5 +1,6 @@
 import smallData from '@/../product/sections/project-graph/data.json'
 import largeData from '@/../product/sections/project-graph/data.large.json'
+import mainCodeData from '@/../product/sections/project-graph/data.main-code.json'
 
 export interface ProjectMeta {
   id: string
@@ -33,6 +34,17 @@ export const PROJECTS: ProjectMeta[] = [
     nodeCount: largeData.nodes.length + 1,
     edgeCount: largeData.edges.length,
     data: largeData,
+  },
+  {
+    id: 'main-code',
+    name: 'Main Code',
+    description:
+      'Code-first POC for Wix CLI extensions with a scheduled job group, explode/unpack behavior, and editable job inspector.',
+    domain: (mainCodeData.project as { meta: { domain: string } }).meta.domain,
+    pageCount: mainCodeData.nodes.filter((n) => n.type === 'page').length,
+    nodeCount: mainCodeData.nodes.length + 1,
+    edgeCount: mainCodeData.edges.length,
+    data: mainCodeData,
   },
 ]
 

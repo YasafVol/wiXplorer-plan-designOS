@@ -1,0 +1,194 @@
+{
+  "project": {
+    "id": "main-code-project",
+    "type": "project",
+    "label": "Main Code",
+    "source": "DM",
+    "meta": {
+      "domain": "main-code.local",
+      "publishedAt": "2026-02-24T12:00:00Z",
+      "totalPages": 2,
+      "premium": true
+    },
+    "alertCount": 0
+  },
+  "nodes": [
+    {
+      "id": "node-extensions-root",
+      "type": "code",
+      "label": "extensions.ts",
+      "source": "Velo",
+      "meta": {
+        "path": "src/extensions.ts",
+        "fileType": "site",
+        "linesOfCode": 18,
+        "lastModified": "2026-02-24T12:00:00Z",
+        "kind": "extensionsRoot"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-job-my-job",
+      "type": "code",
+      "label": "my-job (scheduled)",
+      "source": "Velo",
+      "meta": {
+        "fileType": "backend",
+        "kind": "scheduledJobGroup",
+        "jobId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "cron": "0 * * * *",
+        "cronHuman": "Every hour (at minute 0)",
+        "logicSummary": "Runs hourly to sync Contacts submissions into a normalized pipeline and enqueue follow-up checks.",
+        "builderPath": "src/server/jobs/my-job/my-job.extension.ts",
+        "handlerPath": "src/server/jobs/my-job/my-job.ts",
+        "source": "./my-job.ts",
+        "linesOfCode": 28,
+        "lastModified": "2026-02-24T12:00:00Z"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-job-builder-file",
+      "type": "code",
+      "label": "my-job.extension.ts",
+      "source": "Velo",
+      "meta": {
+        "path": "src/server/jobs/my-job/my-job.extension.ts",
+        "fileType": "backend",
+        "kind": "builderFile",
+        "linesOfCode": 12,
+        "lastModified": "2026-02-24T12:00:00Z"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-job-handler-file",
+      "type": "code",
+      "label": "my-job.ts",
+      "source": "Velo",
+      "meta": {
+        "path": "src/server/jobs/my-job/my-job.ts",
+        "fileType": "backend",
+        "kind": "handlerFile",
+        "linesOfCode": 15,
+        "lastModified": "2026-02-24T12:00:00Z"
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-contact-collection",
+      "type": "table",
+      "label": "Contact",
+      "source": "CMS",
+      "meta": {
+        "collectionId": "Contact",
+        "rowCount": 1024,
+        "schema": [
+          { "field": "_id", "type": "text" },
+          { "field": "email", "type": "text" },
+          { "field": "firstName", "type": "text" },
+          { "field": "createdAt", "type": "date" }
+        ]
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-app-wix-forms",
+      "type": "app",
+      "label": "Wix Forms",
+      "source": "DevCenter",
+      "meta": {
+        "appId": "wix-forms",
+        "scope": "site",
+        "formCount": 1
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-landing",
+      "type": "page",
+      "label": "Landing",
+      "source": "DM",
+      "meta": {
+        "url": "/landing",
+        "title": "Landing",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    },
+    {
+      "id": "node-page-sign-up",
+      "type": "page",
+      "label": "Sign Up",
+      "source": "DM",
+      "meta": {
+        "url": "/sign-up",
+        "title": "Sign Up",
+        "isPublished": true,
+        "hasPopup": false
+      },
+      "alertCount": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-extensions-job",
+      "source": "node-extensions-root",
+      "target": "node-job-my-job",
+      "type": "contains",
+      "hasAlert": false
+    },
+    {
+      "id": "edge-job-builder",
+      "source": "node-job-my-job",
+      "target": "node-job-builder-file",
+      "type": "contains",
+      "hasAlert": false
+    },
+    {
+      "id": "edge-job-handler",
+      "source": "node-job-my-job",
+      "target": "node-job-handler-file",
+      "type": "contains",
+      "hasAlert": false
+    },
+    {
+      "id": "edge-job-contact",
+      "source": "node-job-my-job",
+      "target": "node-contact-collection",
+      "type": "reads",
+      "hasAlert": false
+    },
+    {
+      "id": "edge-forms-contact",
+      "source": "node-app-wix-forms",
+      "target": "node-contact-collection",
+      "type": "manages",
+      "hasAlert": false
+    },
+    {
+      "id": "edge-landing-forms",
+      "source": "node-page-landing",
+      "target": "node-app-wix-forms",
+      "type": "hosts",
+      "hasAlert": false
+    },
+    {
+      "id": "edge-signup-forms",
+      "source": "node-page-sign-up",
+      "target": "node-app-wix-forms",
+      "type": "hosts",
+      "hasAlert": false
+    }
+  ],
+  "alerts": [],
+  "layerFilters": [
+    { "type": "page", "label": "Pages", "color": "indigo", "enabled": true },
+    { "type": "app", "label": "Apps", "color": "cyan", "enabled": true },
+    { "type": "table", "label": "Tables", "color": "emerald", "enabled": true },
+    { "type": "code", "label": "Code", "color": "violet", "enabled": true },
+    { "type": "package", "label": "Packages", "color": "fuchsia", "enabled": false },
+    { "type": "analytics", "label": "Analytics", "color": "amber", "enabled": false }
+  ]
+}

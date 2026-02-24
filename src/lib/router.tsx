@@ -10,6 +10,7 @@ import { ExportPage } from '@/components/ExportPage'
 import { ProjectsPage } from '@/components/ProjectsPage'
 import { ProjectGraphPage } from '@/components/ProjectGraphPage'
 import { ProjectInventoryPage } from '@/components/ProjectInventoryPage'
+import { AltCodeViewPage } from '@/components/AltCodeViewPage'
 
 export const router = createBrowserRouter([
   // wiXplorer — main app
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
   {
     path: '/projects/:projectId/inventory',
     element: <ProjectInventoryPage />,
+  },
+  {
+    path: '/projects/:projectId/alt-code-view',
+    element: <AltCodeViewPage />,
   },
   // Design OS — planning tool
   {
