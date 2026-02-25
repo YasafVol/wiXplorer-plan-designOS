@@ -1,6 +1,7 @@
 import smallData from '@/../product/sections/project-graph/data.json'
 import largeData from '@/../product/sections/project-graph/data.large.json'
 import mainCodeData from '@/../product/sections/project-graph/data.main-code.json'
+import codeLargeComplicatedData from '@/../product/sections/project-graph/data.code-large-complicated.json'
 
 export interface ProjectMeta {
   id: string
@@ -529,23 +530,13 @@ export const PROJECTS: ProjectMeta[] = [
   {
     id: 'code-large-complicated',
     name: 'Code: Large, Complicated',
-    description: 'Empty placeholder project for a future large-scale and complex code navigation scenario.',
-    domain: 'code-large-complicated.local',
-    pageCount: 0,
-    nodeCount: 1,
-    edgeCount: 0,
-    data: {
-      ...EMPTY_CODE_GRAPH,
-      project: {
-        ...EMPTY_CODE_GRAPH.project,
-        id: 'code-large-complicated-project',
-        label: 'Code: Large, Complicated',
-        meta: {
-          ...EMPTY_CODE_GRAPH.project.meta,
-          domain: 'code-large-complicated.local',
-        },
-      },
-    },
+    description:
+      'Enterprise hospitality model with multi-surface booking journeys, staff operations, and site-level business solution orchestration.',
+    domain: (codeLargeComplicatedData.project as { meta: { domain: string } }).meta.domain,
+    pageCount: codeLargeComplicatedData.nodes.filter((n) => n.type === 'page').length,
+    nodeCount: codeLargeComplicatedData.nodes.length + 1,
+    edgeCount: codeLargeComplicatedData.edges.length,
+    data: codeLargeComplicatedData,
   },
 ]
 

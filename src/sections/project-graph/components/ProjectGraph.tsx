@@ -214,7 +214,13 @@ function computeLayout(
 
   const maxPageDepth = pageDepth.size > 0 ? Math.max(...pageDepth.values()) : 0
   const pageLayerOffset = 1
-  const appLayer = pageLayerOffset + maxPageDepth + 1
+  const pageAppsLayer = pageLayerOffset + maxPageDepth + 1
+  const siteBusinessSolutionsLayer = pageAppsLayer + 1
+  const tableLayer = siteBusinessSolutionsLayer + 1
+  const clientCodeLayer = tableLayer + 1
+  const serverCodeLayer = tableLayer + 2
+  const packageLayer = tableLayer + 3
+  const analyticsLayer = tableLayer + 4
 
   const nodeLayerMap = new Map<string, number>()
   allNodes.forEach((n) => {
@@ -225,16 +231,17 @@ function computeLayout(
       if (n.type === 'project') {
         slot = 0
       } else if (n.type === 'app') {
-        slot = appLayer
+        const scope = (n.meta as { scope?: string } | undefined)?.scope
+        slot = scope === 'site' ? siteBusinessSolutionsLayer : pageAppsLayer
       } else if (n.type === 'table') {
-        slot = appLayer + 1
+        slot = tableLayer
       } else if (n.type === 'code') {
         const fileType = (n.meta as { fileType?: string }).fileType
-        slot = fileType === 'backend' ? appLayer + 3 : appLayer + 2
+        slot = fileType === 'backend' ? serverCodeLayer : clientCodeLayer
       } else if (n.type === 'package') {
-        slot = appLayer + 4
+        slot = packageLayer
       } else {
-        slot = appLayer + 5
+        slot = analyticsLayer
       }
       nodeLayerMap.set(n.id, slot)
     }
@@ -250,12 +257,48 @@ function computeLayout(
       isPageSub: d > 0,
     })
   }
-  layerMetaMap.set(appLayer,     { label: 'Apps',        fillClass: 'fill-cyan-500 dark:fill-cyan-400',       sepClass: 'stroke-cyan-200 dark:stroke-cyan-800',       isPageSub: false })
-  layerMetaMap.set(appLayer + 1, { label: 'Tables',      fillClass: 'fill-emerald-500 dark:fill-emerald-400', sepClass: 'stroke-emerald-200 dark:stroke-emerald-800', isPageSub: false })
-  layerMetaMap.set(appLayer + 2, { label: 'Client Code', fillClass: 'fill-violet-400 dark:fill-violet-300',   sepClass: 'stroke-violet-200 dark:stroke-violet-800',   isPageSub: false })
-  layerMetaMap.set(appLayer + 3, { label: 'Server Code', fillClass: 'fill-violet-600 dark:fill-violet-500',   sepClass: 'stroke-violet-300 dark:stroke-violet-700',   isPageSub: false })
-  layerMetaMap.set(appLayer + 4, { label: 'Packages',    fillClass: 'fill-fuchsia-500 dark:fill-fuchsia-400', sepClass: 'stroke-fuchsia-200 dark:stroke-fuchsia-800', isPageSub: false })
-  layerMetaMap.set(appLayer + 5, { label: 'Analytics',   fillClass: 'fill-amber-500 dark:fill-amber-400',     sepClass: 'stroke-amber-200 dark:stroke-amber-800',     isPageSub: false })
+  layerMetaMap.set(pageAppsLayer, {
+    label: 'Page Apps',
+    fillClass: 'fill-cyan-500 dark:fill-cyan-400',
+    sepClass: 'stroke-cyan-200 dark:stroke-cyan-800',
+    isPageSub: false,
+  })
+  layerMetaMap.set(siteBusinessSolutionsLayer, {
+    label: 'Site Business Solutions',
+    fillClass: 'fill-teal-500 dark:fill-teal-400',
+    sepClass: 'stroke-teal-200 dark:stroke-teal-800',
+    isPageSub: false,
+  })
+  layerMetaMap.set(tableLayer, {
+    label: 'Tables',
+    fillClass: 'fill-emerald-500 dark:fill-emerald-400',
+    sepClass: 'stroke-emerald-200 dark:stroke-emerald-800',
+    isPageSub: false,
+  })
+  layerMetaMap.set(clientCodeLayer, {
+    label: 'Client Code',
+    fillClass: 'fill-violet-400 dark:fill-violet-300',
+    sepClass: 'stroke-violet-200 dark:stroke-violet-800',
+    isPageSub: false,
+  })
+  layerMetaMap.set(serverCodeLayer, {
+    label: 'Server Code',
+    fillClass: 'fill-violet-600 dark:fill-violet-500',
+    sepClass: 'stroke-violet-300 dark:stroke-violet-700',
+    isPageSub: false,
+  })
+  layerMetaMap.set(packageLayer, {
+    label: 'Packages',
+    fillClass: 'fill-fuchsia-500 dark:fill-fuchsia-400',
+    sepClass: 'stroke-fuchsia-200 dark:stroke-fuchsia-800',
+    isPageSub: false,
+  })
+  layerMetaMap.set(analyticsLayer, {
+    label: 'Analytics',
+    fillClass: 'fill-amber-500 dark:fill-amber-400',
+    sepClass: 'stroke-amber-200 dark:stroke-amber-800',
+    isPageSub: false,
+  })
 
   const layerMap = new Map<number, string[]>()
   allNodes.forEach((n) => {
@@ -336,8 +379,8 @@ function computeLayout(
 
   // Force ghost anchor to the center between Client Code and Server Code lanes.
   if (ghostNodeId && positions.has(ghostNodeId)) {
-    const clientLaneY = layerYMap.get(appLayer + 2)
-    const serverLaneY = layerYMap.get(appLayer + 3)
+    const clientLaneY = layerYMap.get(clientCodeLayer)
+    const serverLaneY = layerYMap.get(serverCodeLayer)
     if (clientLaneY !== undefined && serverLaneY !== undefined) {
       const centeredY = clientLaneY + NODE_H + (serverLaneY - clientLaneY - NODE_H) / 2 - NODE_H / 2
       positions.set(ghostNodeId, {
@@ -398,82 +441,123 @@ export function ProjectGraph({
   const dragState = useRef({ isDragging: false, hasDragged: false, startX: 0, startY: 0, startTX: 0, startTY: 0 })
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const groupedServerCodeNodeId = useMemo(() => {
-    return (
-      nodes.find((node) => {
+  const codeNodeById = useMemo(
+    () => new Map(nodes.filter((node) => node.type === 'code').map((node) => [node.id, node])),
+    [nodes]
+  )
+  const groupedCodeNodes = useMemo(
+    () =>
+      nodes.filter((node) => {
         if (node.type !== 'code') return false
         const kind = (node.meta as { kind?: string } | undefined)?.kind
         return kind === 'scheduledJobGroup'
-      })?.id ?? null
-    )
-  }, [nodes])
-  const groupedServerMemberIds = useMemo(() => {
-    return new Set(
-      nodes
-        .filter((node) => {
-          if (node.type !== 'code') return false
-          const kind = (node.meta as { kind?: string } | undefined)?.kind
-          return kind === 'builderFile' || kind === 'handlerFile'
-        })
-        .map((node) => node.id)
-    )
-  }, [nodes])
-  const builderServerCodeNodeId = useMemo(() => {
-    return (
-      nodes.find((node) => {
-        if (node.type !== 'code') return false
-        const kind = (node.meta as { kind?: string } | undefined)?.kind
-        return kind === 'builderFile'
-      })?.id ?? null
-    )
-  }, [nodes])
-  const handlerServerCodeNodeId = useMemo(() => {
-    return (
-      nodes.find((node) => {
-        if (node.type !== 'code') return false
-        const kind = (node.meta as { kind?: string } | undefined)?.kind
-        return kind === 'handlerFile'
-      })?.id ?? null
-    )
-  }, [nodes])
-  const groupedServerCodeNode = useMemo(
-    () => (groupedServerCodeNodeId ? nodes.find((node) => node.id === groupedServerCodeNodeId) ?? null : null),
-    [nodes, groupedServerCodeNodeId]
+      }),
+    [nodes]
   )
-  const serverCodeClusterNode = useMemo<ClusterNode | null>(() => {
-    if (!groupedServerCodeNodeId || !groupedServerCodeNode) return null
-    return {
-      id: groupedServerCodeNodeId,
-      label: groupedServerCodeNode.label,
-      memberCount: groupedServerMemberIds.size,
-      memberLabel: 'files',
-      alertCount: groupedServerCodeNode.alertCount,
-      memberIds: [...groupedServerMemberIds],
-      rootPageId: groupedServerCodeNodeId,
-    }
-  }, [groupedServerCodeNodeId, groupedServerCodeNode, groupedServerMemberIds])
-  const serverCodeExpanded =
-    !!groupedServerCodeNodeId && expandedClusterIds.has(groupedServerCodeNodeId)
-  const shouldCollapseServerCodeFiles =
-    clusteringEnabled && !!groupedServerCodeNodeId && groupedServerMemberIds.size > 0 && !serverCodeExpanded
+  const groupedCodeIds = useMemo(() => new Set(groupedCodeNodes.map((node) => node.id)), [groupedCodeNodes])
+  const codeMemberNodeIds = useMemo(
+    () =>
+      new Set(
+        nodes
+          .filter((node) => {
+            if (node.type !== 'code') return false
+            const kind = (node.meta as { kind?: string } | undefined)?.kind
+            return kind === 'builderFile' || kind === 'handlerFile'
+          })
+          .map((node) => node.id)
+      ),
+    [nodes]
+  )
+  const membersByCodeGroupId = useMemo(() => {
+    const next = new Map<string, GraphNodeType[]>()
+    groupedCodeNodes.forEach((group) => next.set(group.id, []))
+    edges.forEach((edge) => {
+      if (edge.type !== 'contains') return
+      if (!groupedCodeIds.has(edge.source)) return
+      if (!codeMemberNodeIds.has(edge.target)) return
+      const target = codeNodeById.get(edge.target)
+      if (!target) return
+      next.get(edge.source)?.push(target)
+    })
+    next.forEach((members, groupId) => {
+      members.sort((a, b) => {
+        const kindA = String((a.meta as { kind?: string } | undefined)?.kind ?? '')
+        const kindB = String((b.meta as { kind?: string } | undefined)?.kind ?? '')
+        if (kindA === kindB) return a.label.localeCompare(b.label)
+        if (kindA === 'builderFile') return -1
+        if (kindB === 'builderFile') return 1
+        return a.label.localeCompare(b.label)
+      })
+      next.set(groupId, members)
+    })
+    return next
+  }, [edges, groupedCodeNodes, groupedCodeIds, codeMemberNodeIds, codeNodeById])
+  const collapsibleCodeGroupIds = useMemo(
+    () =>
+      new Set(
+        [...membersByCodeGroupId.entries()]
+          .filter(([, members]) => members.length > 0)
+          .map(([groupId]) => groupId)
+      ),
+    [membersByCodeGroupId]
+  )
+  const collapsedCodeGroupIds = useMemo(() => {
+    if (!clusteringEnabled) return new Set<string>()
+    return new Set(
+      [...collapsibleCodeGroupIds].filter((groupId) => !expandedClusterIds.has(groupId))
+    )
+  }, [clusteringEnabled, collapsibleCodeGroupIds, expandedClusterIds])
+  const expandedCodeGroupIds = useMemo(() => {
+    if (!clusteringEnabled) return new Set([...collapsibleCodeGroupIds])
+    return new Set(
+      [...collapsibleCodeGroupIds].filter((groupId) => expandedClusterIds.has(groupId))
+    )
+  }, [clusteringEnabled, collapsibleCodeGroupIds, expandedClusterIds])
+  const collapsedCodeMemberIds = useMemo(
+    () =>
+      new Set(
+        [...collapsedCodeGroupIds].flatMap((groupId) =>
+          (membersByCodeGroupId.get(groupId) ?? []).map((member) => member.id)
+        )
+      ),
+    [collapsedCodeGroupIds, membersByCodeGroupId]
+  )
+  const codeClusterNodesById = useMemo(() => {
+    const next = new Map<string, ClusterNode>()
+    groupedCodeNodes.forEach((group) => {
+      const members = membersByCodeGroupId.get(group.id) ?? []
+      if (members.length === 0) return
+      next.set(group.id, {
+        id: group.id,
+        label: group.label,
+        memberCount: members.length,
+        memberLabel: 'files',
+        alertCount: group.alertCount,
+        memberIds: members.map((member) => member.id),
+        rootPageId: group.id,
+      })
+    })
+    return next
+  }, [groupedCodeNodes, membersByCodeGroupId])
   const effectiveNodes = useMemo(() => {
-    if (shouldCollapseServerCodeFiles && groupedServerCodeNodeId) {
-      return nodes.filter((node) => !groupedServerMemberIds.has(node.id))
-    }
-    if (clusteringEnabled && serverCodeExpanded && groupedServerCodeNodeId && groupedServerMemberIds.size > 0) {
-      return nodes.filter((node) => node.id !== groupedServerCodeNodeId)
-    }
-    if (!clusteringEnabled && groupedServerCodeNodeId && groupedServerMemberIds.size > 0) {
-      return nodes.filter((node) => node.id !== groupedServerCodeNodeId)
-    }
-    return nodes
+    return nodes.filter((node) => {
+      if (!collapsibleCodeGroupIds.has(node.id) && !codeMemberNodeIds.has(node.id)) return true
+      if (!clusteringEnabled) {
+        // Clusters off means file-level projection: hide grouped nodes, keep members.
+        return !collapsibleCodeGroupIds.has(node.id)
+      }
+      // Clusters on: collapsed groups show only grouped node, expanded groups show only members.
+      if (collapsibleCodeGroupIds.has(node.id)) return !expandedCodeGroupIds.has(node.id)
+      if (codeMemberNodeIds.has(node.id)) return !collapsedCodeMemberIds.has(node.id)
+      return true
+    })
   }, [
     nodes,
-    shouldCollapseServerCodeFiles,
-    groupedServerCodeNodeId,
-    groupedServerMemberIds,
+    collapsibleCodeGroupIds,
+    codeMemberNodeIds,
     clusteringEnabled,
-    serverCodeExpanded,
+    expandedCodeGroupIds,
+    collapsedCodeMemberIds,
   ])
 
   // All real nodes (project + leaf nodes from props)
@@ -492,62 +576,67 @@ export function ProjectGraph({
     if (ghostNodeId) {
       nextEdges = nextEdges.filter((edge) => edge.source !== ghostNodeId && edge.target !== ghostNodeId)
     }
-    if (shouldCollapseServerCodeFiles) {
-      nextEdges = nextEdges.filter(
-        (edge) => !groupedServerMemberIds.has(edge.source) && !groupedServerMemberIds.has(edge.target)
-      )
-    }
-    if (
-      groupedServerCodeNodeId &&
-      groupedServerMemberIds.size > 0 &&
-      (!clusteringEnabled || serverCodeExpanded)
-    ) {
-      const groupedNodeEdges = nextEdges.filter(
-        (edge) => edge.source === groupedServerCodeNodeId || edge.target === groupedServerCodeNodeId
-      )
-      nextEdges = nextEdges.filter(
-        (edge) => edge.source !== groupedServerCodeNodeId && edge.target !== groupedServerCodeNodeId
-      )
+    const edgesToRewrite = expandedCodeGroupIds
+    if (edgesToRewrite.size > 0) {
+      const byGroup = new Map<string, GraphEdge[]>()
+      edgesToRewrite.forEach((groupId) => byGroup.set(groupId, []))
+      nextEdges.forEach((edge) => {
+        if (byGroup.has(edge.source)) byGroup.get(edge.source)?.push(edge)
+        if (byGroup.has(edge.target)) byGroup.get(edge.target)?.push(edge)
+      })
 
-      if (builderServerCodeNodeId && handlerServerCodeNodeId) {
-        nextEdges = [
-          ...nextEdges,
-          {
-            id: `synthetic:${builderServerCodeNodeId}:${handlerServerCodeNodeId}`,
-            source: builderServerCodeNodeId,
-            target: handlerServerCodeNodeId,
-            type: 'imports',
-            hasAlert: false,
-          },
-        ]
-      }
+      nextEdges = nextEdges.filter((edge) => !edgesToRewrite.has(edge.source) && !edgesToRewrite.has(edge.target))
 
-      const collectionLink = groupedNodeEdges.find((edge) => edge.type !== 'contains')
-      if (collectionLink && handlerServerCodeNodeId) {
-        const targetId =
-          collectionLink.source === groupedServerCodeNodeId ? collectionLink.target : collectionLink.source
-        nextEdges = [
-          ...nextEdges,
-          {
-            ...collectionLink,
-            id: `synthetic:${handlerServerCodeNodeId}:${targetId}`,
-            source: handlerServerCodeNodeId,
-            target: targetId,
-          },
-        ]
-      }
+      edgesToRewrite.forEach((groupId) => {
+        const members = membersByCodeGroupId.get(groupId) ?? []
+        const builder = members.find(
+          (member) => (member.meta as { kind?: string } | undefined)?.kind === 'builderFile'
+        )
+        const handler = members.find(
+          (member) => (member.meta as { kind?: string } | undefined)?.kind === 'handlerFile'
+        )
+
+        if (builder?.id && handler?.id) {
+          const alreadyLinked = nextEdges.some(
+            (edge) =>
+              (edge.source === builder.id && edge.target === handler.id) ||
+              (edge.source === handler.id && edge.target === builder.id)
+          )
+          if (!alreadyLinked) {
+            nextEdges.push({
+              id: `synthetic:${groupId}:${builder.id}:${handler.id}`,
+              source: builder.id,
+              target: handler.id,
+              type: 'imports',
+              hasAlert: false,
+            })
+          }
+        }
+
+        const passthroughEdges = (byGroup.get(groupId) ?? []).filter((edge) => edge.type !== 'contains')
+        passthroughEdges.forEach((edge) => {
+          if (!handler?.id) return
+          const targetId = edge.source === groupId ? edge.target : edge.source
+          nextEdges.push({
+            ...edge,
+            id: `synthetic:${groupId}:${edge.id}:${handler.id}:${targetId}`,
+            source: edge.source === groupId ? handler.id : edge.source,
+            target: edge.target === groupId ? handler.id : edge.target,
+          })
+        })
+      })
     }
-    return nextEdges
+
+    const effectiveNodeIds = new Set(effectiveNodes.map((node) => node.id))
+    return nextEdges.filter(
+      (edge) => effectiveNodeIds.has(edge.source) && effectiveNodeIds.has(edge.target)
+    )
   }, [
     edges,
     ghostNodeId,
-    shouldCollapseServerCodeFiles,
-    groupedServerMemberIds,
-    clusteringEnabled,
-    serverCodeExpanded,
-    groupedServerCodeNodeId,
-    builderServerCodeNodeId,
-    handlerServerCodeNodeId,
+    expandedCodeGroupIds,
+    membersByCodeGroupId,
+    effectiveNodes,
   ])
 
   // ── Cluster projection ──────────────────────────────────────────────────────
@@ -636,7 +725,6 @@ export function ProjectGraph({
   }, [layout.canvasWidth, layout.canvasHeight])
 
   // Alert lookups
-  const alertedNodeIds = useMemo(() => new Set(alerts.map((a) => a.nodeId)), [alerts])
   const alertedEdgeIds = useMemo(
     () => new Set(alerts.flatMap((a) => a.affectedEdgeIds)),
     [alerts]
@@ -1542,12 +1630,12 @@ export function ProjectGraph({
 
               // Cluster proxy nodes (IDs start with 'cluster-')
               const cluster = clusterProjection?.clusters.find((c) => c.id === node.id)
-              const serverCodeCluster =
-                clusteringEnabled && serverCodeClusterNode && node.id === serverCodeClusterNode.id
-                  ? serverCodeClusterNode
+              const codeCluster =
+                clusteringEnabled && collapsedCodeGroupIds.has(node.id)
+                  ? codeClusterNodesById.get(node.id) ?? null
                   : null
-              if (cluster || serverCodeCluster) {
-                const renderedCluster = serverCodeCluster ?? cluster
+              if (cluster || codeCluster) {
+                const renderedCluster = codeCluster ?? cluster
                 if (!renderedCluster) return null
                 return (
                   <ClusterNodeCard
@@ -1566,7 +1654,7 @@ export function ProjectGraph({
                       handleToggleCluster(renderedCluster.id)
                     }}
                     showToggle
-                    toggleLabel={serverCodeCluster ? 'Unpack' : undefined}
+                    toggleLabel={codeCluster ? 'Unpack' : undefined}
                   />
                 )
               }
