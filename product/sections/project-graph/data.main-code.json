@@ -2,7 +2,7 @@
   "project": {
     "id": "main-code-project",
     "type": "project",
-    "label": "Main Code",
+    "label": "Code: Single Extension",
     "source": "DM",
     "meta": {
       "domain": "main-code.local",
@@ -78,7 +78,7 @@
     {
       "id": "node-contact-collection",
       "type": "table",
-      "label": "Contact",
+      "label": "collection (table)",
       "source": "CMS",
       "meta": {
         "collectionId": "Contact",
@@ -107,7 +107,7 @@
     {
       "id": "node-page-landing",
       "type": "page",
-      "label": "Landing",
+      "label": "page",
       "source": "DM",
       "meta": {
         "url": "/landing",
@@ -120,7 +120,7 @@
     {
       "id": "node-page-sign-up",
       "type": "page",
-      "label": "Sign Up",
+      "label": "page",
       "source": "DM",
       "meta": {
         "url": "/sign-up",

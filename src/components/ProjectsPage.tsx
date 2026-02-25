@@ -3,8 +3,31 @@ import { ArrowRight, Globe, Layers, GitBranch, Link2, Table2 } from 'lucide-reac
 import { PROJECTS } from '@/projects'
 import type { ProjectMeta } from '@/projects'
 
+function isCodeProject(project: ProjectMeta): boolean {
+  return project.name.startsWith('Code:')
+}
+
+function formatExtensionType(kind: string): string {
+  if (kind === 'extensionsRoot') return 'Extensions root'
+  if (kind === 'scheduledJobGroup') return 'Scheduled jobs'
+  if (kind === 'builderFile') return 'Builder file'
+  if (kind === 'handlerFile') return 'Handler file'
+  return kind.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())
+}
+
 function ProjectCard({ project }: { project: ProjectMeta }) {
   const navigate = useNavigate()
+  const codeProject = isCodeProject(project)
+  const codeNodes = codeProject
+    ? ((project.data?.nodes as Array<{ type?: string; meta?: { kind?: string } }> | undefined) ?? []).filter(
+        (node) => node.type === 'code'
+      )
+    : []
+  const extensionNodes = codeNodes.filter((node) => node.meta?.kind === 'scheduledJobGroup')
+  const extensionCount = extensionNodes.length
+  const extensionTypes = [
+    ...new Set(extensionNodes.map((node) => node.meta?.kind).filter(Boolean) as string[]),
+  ].map(formatExtensionType)
 
   return (
     <div className="group relative rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 flex flex-col gap-5 hover:border-stone-300 dark:hover:border-stone-700 hover:shadow-sm transition-all duration-150">
@@ -38,34 +61,65 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
       </p>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { icon: Layers, label: 'Pages', value: project.pageCount },
-          { icon: GitBranch, label: 'Nodes', value: project.nodeCount },
-          { icon: Link2, label: 'Edges', value: project.edgeCount },
-        ].map(({ icon: Icon, label, value }) => (
-          <div
-            key={label}
-            className="rounded-lg bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800 px-3 py-2.5"
-          >
-            <div className="flex items-center gap-1.5 mb-1">
-              <Icon className="w-3 h-3 text-stone-400 dark:text-stone-500" />
+      {!codeProject && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { icon: Layers, label: 'Pages', value: project.pageCount },
+            { icon: GitBranch, label: 'Nodes', value: project.nodeCount },
+            { icon: Link2, label: 'Edges', value: project.edgeCount },
+          ].map(({ icon: Icon, label, value }) => (
+            <div
+              key={label}
+              className="rounded-lg bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800 px-3 py-2.5"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <Icon className="w-3 h-3 text-stone-400 dark:text-stone-500" />
+                <span
+                  className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  {label}
+                </span>
+              </div>
               <span
-                className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                className="text-lg font-semibold text-stone-800 dark:text-stone-200 tabular-nums"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                {label}
+                {value}
               </span>
             </div>
-            <span
+          ))}
+        </div>
+      )}
+      {codeProject && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800 px-3 py-2.5">
+            <div
+              className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-1"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Extension types
+            </div>
+            <div className="text-[12px] text-stone-700 dark:text-stone-300 leading-relaxed min-h-10">
+              {extensionTypes.length > 0 ? extensionTypes.join(', ') : 'None yet'}
+            </div>
+          </div>
+          <div className="rounded-lg bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800 px-3 py-2.5">
+            <div
+              className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-1"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Extensions
+            </div>
+            <div
               className="text-lg font-semibold text-stone-800 dark:text-stone-200 tabular-nums"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              {value}
-            </span>
+              {extensionCount}
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">
@@ -77,17 +131,17 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
           Open in graph
           <ArrowRight className="w-4 h-4" />
         </button>
-        {project.id === 'main-code' && (
+        {codeProject && (
           <button
-            onClick={() => navigate(`/projects/${project.id}/alt-code-view`)}
-            title="Open Alt-code view"
+            onClick={() => navigate(`/projects/${project.id}/code-navigation`)}
+            title="Open code navigation"
             className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            Alt-code view
+            Code navigation
           </button>
         )}
-        {project.id !== 'main-code' && (
+        {!codeProject && (
           <button
             onClick={() => navigate(`/projects/${project.id}/inventory`)}
             title="Open inventory table"
@@ -104,6 +158,9 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
 }
 
 export function ProjectsPage() {
+  const codeProjects = PROJECTS.filter((project) => isCodeProject(project))
+  const regularProjects = PROJECTS.filter((project) => !isCodeProject(project))
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex flex-col">
       {/* Header */}
@@ -127,7 +184,7 @@ export function ProjectsPage() {
       </header>
 
       {/* Content */}
-      <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-12">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12">
         <div className="mb-8">
           <h2
             className="text-2xl font-bold text-stone-900 dark:text-stone-100 mb-2"
@@ -143,9 +200,25 @@ export function ProjectsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {PROJECTS.map((project) => (
+        <div className="grid gap-4 sm:grid-cols-2 mb-8">
+          {regularProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
+
+        <div className="mb-3">
+          <h3
+            className="text-sm font-semibold text-stone-800 dark:text-stone-200"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            Code Projects
+          </h3>
+        </div>
+        <div className="flex flex-nowrap gap-4 overflow-x-auto pb-2">
+          {codeProjects.map((project) => (
+            <div key={project.id} className="min-w-[320px] flex-1">
+              <ProjectCard project={project} />
+            </div>
           ))}
         </div>
       </main>

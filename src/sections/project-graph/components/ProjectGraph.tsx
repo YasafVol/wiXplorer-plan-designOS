@@ -26,6 +26,7 @@ import { GraphViews } from './GraphViews'
 import type { GraphView } from './GraphViews'
 import {
   computeClusterProjection,
+  type ClusterNode,
 } from './clusterUtils'
 
 // ─── Edge annotation labels ────────────────────────────────────────────────────
@@ -181,7 +182,8 @@ interface LayoutResult {
 function computeLayout(
   project: GraphNodeType,
   nodes: GraphNodeType[],
-  edges: GraphEdge[]
+  edges: GraphEdge[],
+  ghostNodeId?: string
 ): LayoutResult {
   const allNodes = [project, ...nodes]
   const nodeMap = new Map(allNodes.map((n) => [n.id, n]))
@@ -332,6 +334,19 @@ function computeLayout(
     }
   }
 
+  // Force ghost anchor to the center between Client Code and Server Code lanes.
+  if (ghostNodeId && positions.has(ghostNodeId)) {
+    const clientLaneY = layerYMap.get(appLayer + 2)
+    const serverLaneY = layerYMap.get(appLayer + 3)
+    if (clientLaneY !== undefined && serverLaneY !== undefined) {
+      const centeredY = clientLaneY + NODE_H + (serverLaneY - clientLaneY - NODE_H) / 2 - NODE_H / 2
+      positions.set(ghostNodeId, {
+        x: canvasWidth / 2 - NODE_W / 2,
+        y: centeredY,
+      })
+    }
+  }
+
   return {
     positions,
     canvasWidth,
@@ -383,22 +398,171 @@ export function ProjectGraph({
   const dragState = useRef({ isDragging: false, hasDragged: false, startX: 0, startY: 0, startTX: 0, startTY: 0 })
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const groupedServerCodeNodeId = useMemo(() => {
+    return (
+      nodes.find((node) => {
+        if (node.type !== 'code') return false
+        const kind = (node.meta as { kind?: string } | undefined)?.kind
+        return kind === 'scheduledJobGroup'
+      })?.id ?? null
+    )
+  }, [nodes])
+  const groupedServerMemberIds = useMemo(() => {
+    return new Set(
+      nodes
+        .filter((node) => {
+          if (node.type !== 'code') return false
+          const kind = (node.meta as { kind?: string } | undefined)?.kind
+          return kind === 'builderFile' || kind === 'handlerFile'
+        })
+        .map((node) => node.id)
+    )
+  }, [nodes])
+  const builderServerCodeNodeId = useMemo(() => {
+    return (
+      nodes.find((node) => {
+        if (node.type !== 'code') return false
+        const kind = (node.meta as { kind?: string } | undefined)?.kind
+        return kind === 'builderFile'
+      })?.id ?? null
+    )
+  }, [nodes])
+  const handlerServerCodeNodeId = useMemo(() => {
+    return (
+      nodes.find((node) => {
+        if (node.type !== 'code') return false
+        const kind = (node.meta as { kind?: string } | undefined)?.kind
+        return kind === 'handlerFile'
+      })?.id ?? null
+    )
+  }, [nodes])
+  const groupedServerCodeNode = useMemo(
+    () => (groupedServerCodeNodeId ? nodes.find((node) => node.id === groupedServerCodeNodeId) ?? null : null),
+    [nodes, groupedServerCodeNodeId]
+  )
+  const serverCodeClusterNode = useMemo<ClusterNode | null>(() => {
+    if (!groupedServerCodeNodeId || !groupedServerCodeNode) return null
+    return {
+      id: groupedServerCodeNodeId,
+      label: groupedServerCodeNode.label,
+      memberCount: groupedServerMemberIds.size,
+      memberLabel: 'files',
+      alertCount: groupedServerCodeNode.alertCount,
+      memberIds: [...groupedServerMemberIds],
+      rootPageId: groupedServerCodeNodeId,
+    }
+  }, [groupedServerCodeNodeId, groupedServerCodeNode, groupedServerMemberIds])
+  const serverCodeExpanded =
+    !!groupedServerCodeNodeId && expandedClusterIds.has(groupedServerCodeNodeId)
+  const shouldCollapseServerCodeFiles =
+    clusteringEnabled && !!groupedServerCodeNodeId && groupedServerMemberIds.size > 0 && !serverCodeExpanded
+  const effectiveNodes = useMemo(() => {
+    if (shouldCollapseServerCodeFiles && groupedServerCodeNodeId) {
+      return nodes.filter((node) => !groupedServerMemberIds.has(node.id))
+    }
+    if (clusteringEnabled && serverCodeExpanded && groupedServerCodeNodeId && groupedServerMemberIds.size > 0) {
+      return nodes.filter((node) => node.id !== groupedServerCodeNodeId)
+    }
+    if (!clusteringEnabled && groupedServerCodeNodeId && groupedServerMemberIds.size > 0) {
+      return nodes.filter((node) => node.id !== groupedServerCodeNodeId)
+    }
+    return nodes
+  }, [
+    nodes,
+    shouldCollapseServerCodeFiles,
+    groupedServerCodeNodeId,
+    groupedServerMemberIds,
+    clusteringEnabled,
+    serverCodeExpanded,
+  ])
+
   // All real nodes (project + leaf nodes from props)
-  const allNodes = useMemo(() => [project, ...nodes], [project, nodes])
+  const allNodes = useMemo(() => [project, ...effectiveNodes], [project, effectiveNodes])
+  const ghostNodeId = useMemo(() => {
+    return (
+      allNodes.find((node) => {
+        if (node.type !== 'code') return false
+        const kind = (node.meta as { kind?: string } | undefined)?.kind
+        return kind === 'extensionsRoot'
+      })?.id ?? null
+    )
+  }, [allNodes])
+  const graphEdges = useMemo(() => {
+    let nextEdges = edges
+    if (ghostNodeId) {
+      nextEdges = nextEdges.filter((edge) => edge.source !== ghostNodeId && edge.target !== ghostNodeId)
+    }
+    if (shouldCollapseServerCodeFiles) {
+      nextEdges = nextEdges.filter(
+        (edge) => !groupedServerMemberIds.has(edge.source) && !groupedServerMemberIds.has(edge.target)
+      )
+    }
+    if (
+      groupedServerCodeNodeId &&
+      groupedServerMemberIds.size > 0 &&
+      (!clusteringEnabled || serverCodeExpanded)
+    ) {
+      const groupedNodeEdges = nextEdges.filter(
+        (edge) => edge.source === groupedServerCodeNodeId || edge.target === groupedServerCodeNodeId
+      )
+      nextEdges = nextEdges.filter(
+        (edge) => edge.source !== groupedServerCodeNodeId && edge.target !== groupedServerCodeNodeId
+      )
+
+      if (builderServerCodeNodeId && handlerServerCodeNodeId) {
+        nextEdges = [
+          ...nextEdges,
+          {
+            id: `synthetic:${builderServerCodeNodeId}:${handlerServerCodeNodeId}`,
+            source: builderServerCodeNodeId,
+            target: handlerServerCodeNodeId,
+            type: 'imports',
+            hasAlert: false,
+          },
+        ]
+      }
+
+      const collectionLink = groupedNodeEdges.find((edge) => edge.type !== 'contains')
+      if (collectionLink && handlerServerCodeNodeId) {
+        const targetId =
+          collectionLink.source === groupedServerCodeNodeId ? collectionLink.target : collectionLink.source
+        nextEdges = [
+          ...nextEdges,
+          {
+            ...collectionLink,
+            id: `synthetic:${handlerServerCodeNodeId}:${targetId}`,
+            source: handlerServerCodeNodeId,
+            target: targetId,
+          },
+        ]
+      }
+    }
+    return nextEdges
+  }, [
+    edges,
+    ghostNodeId,
+    shouldCollapseServerCodeFiles,
+    groupedServerMemberIds,
+    clusteringEnabled,
+    serverCodeExpanded,
+    groupedServerCodeNodeId,
+    builderServerCodeNodeId,
+    handlerServerCodeNodeId,
+  ])
 
   // ── Cluster projection ──────────────────────────────────────────────────────
   const clusterProjection = useMemo(() => {
     if (!clusteringEnabled) return null
-    return computeClusterProjection(allNodes, edges, expandedClusterIds)
-  }, [clusteringEnabled, allNodes, edges, expandedClusterIds])
+    return computeClusterProjection(allNodes, graphEdges, expandedClusterIds)
+  }, [clusteringEnabled, allNodes, graphEdges, expandedClusterIds])
 
   // ── Effective nodes for layout: collapsed cluster members → proxy node ───────
   // Proxy nodes have type 'page' so computeLayout places them at depth-0 (Pages layer)
   const layoutNodes = useMemo((): GraphNodeType[] => {
-    if (!clusterProjection) return nodes
+    if (!clusterProjection) return effectiveNodes
     const result: GraphNodeType[] = []
     const addedClusterIds = new Set<string>()
-    nodes.forEach((node) => {
+    effectiveNodes.forEach((node) => {
       if (node.type !== 'page') {
         result.push(node)
         return
@@ -428,14 +592,14 @@ export function ProjectGraph({
       }
     })
     return result
-  }, [clusterProjection, nodes, expandedClusterIds])
+  }, [clusterProjection, effectiveNodes, expandedClusterIds])
 
   // ── Effective edges for layout ────────────────────────────────────────────────
   // Drop edges involving collapsed members; add boundary edges as GraphEdge proxies
   const layoutEdges = useMemo((): GraphEdge[] => {
-    if (!clusterProjection) return edges
+    if (!clusterProjection) return graphEdges
     const { collapsedMemberIds, boundaryEdges } = clusterProjection
-    const regularEdges = edges.filter(
+    const regularEdges = graphEdges.filter(
       (e) => !collapsedMemberIds.has(e.source) && !collapsedMemberIds.has(e.target)
     )
     const proxyEdges: GraphEdge[] = boundaryEdges.map((be) => ({
@@ -446,11 +610,11 @@ export function ProjectGraph({
       hasAlert: be.hasAlert,
     }))
     return [...regularEdges, ...proxyEdges]
-  }, [clusterProjection, edges])
+  }, [clusterProjection, graphEdges])
 
   const layout = useMemo(
-    () => computeLayout(project, layoutNodes, layoutEdges),
-    [project, layoutNodes, layoutEdges]
+    () => computeLayout(project, layoutNodes, layoutEdges, ghostNodeId ?? undefined),
+    [project, layoutNodes, layoutEdges, ghostNodeId]
   )
 
   // Nodes to iterate when rendering HTML cards (cluster proxies are in layoutNodes)
@@ -542,7 +706,7 @@ export function ProjectGraph({
   }, [project, layoutNodes, visibleNodeIds, layout.nodeLayer])
 
   // Auto-generated views
-  const autoViews = useMemo(() => computeAutoViews(allNodes, edges), [allNodes, edges])
+  const autoViews = useMemo(() => computeAutoViews(allNodes, graphEdges), [allNodes, graphEdges])
 
   const viewFocusIds = useMemo(() => {
     if (!activeViewId) return null
@@ -856,7 +1020,7 @@ export function ProjectGraph({
     // When clustering: use layoutEdges but skip boundary-edge proxies (rendered separately)
     const edgesToRender = clusterProjection
       ? layoutEdges.filter((e) => !e.id.startsWith('boundary:'))
-      : edges
+      : graphEdges
 
     return edgesToRender.map((edge) => {
       if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) return null
@@ -1378,14 +1542,20 @@ export function ProjectGraph({
 
               // Cluster proxy nodes (IDs start with 'cluster-')
               const cluster = clusterProjection?.clusters.find((c) => c.id === node.id)
-              if (cluster) {
+              const serverCodeCluster =
+                clusteringEnabled && serverCodeClusterNode && node.id === serverCodeClusterNode.id
+                  ? serverCodeClusterNode
+                  : null
+              if (cluster || serverCodeCluster) {
+                const renderedCluster = serverCodeCluster ?? cluster
+                if (!renderedCluster) return null
                 return (
                   <ClusterNodeCard
                     key={node.id}
-                    cluster={cluster}
+                    cluster={renderedCluster}
                     x={pos.x}
                     y={pos.y}
-                    isExpanded={expandedClusterIds.has(cluster.id)}
+                    isExpanded={expandedClusterIds.has(renderedCluster.id)}
                     isSelected={isSelected}
                     isHighlighted={isHighlighted}
                     isDimmed={isDimmed}
@@ -1393,11 +1563,18 @@ export function ProjectGraph({
                     onClick={() => handleNodeClick(node.id)}
                     onToggleExpand={(e) => {
                       e.stopPropagation()
-                      handleToggleCluster(cluster.id)
+                      handleToggleCluster(renderedCluster.id)
                     }}
+                    showToggle
+                    toggleLabel={serverCodeCluster ? 'Unpack' : undefined}
                   />
                 )
               }
+
+              const isGhost =
+                node.id === ghostNodeId ||
+                ((node.meta as { kind?: string } | undefined)?.kind === 'extensionsRoot' &&
+                  node.type === 'code')
 
               return (
                 <GraphNodeCard
@@ -1409,6 +1586,7 @@ export function ProjectGraph({
                   isHighlighted={isHighlighted}
                   isDimmed={isDimmed}
                   isSearchMatch={isSearchMatch}
+                  isGhost={isGhost}
                   onClick={() => handleNodeClick(node.id)}
                   onDoubleClick={() => {
                     if (clickTimer.current) {

@@ -82,6 +82,7 @@ interface GraphNodeCardProps {
   isHighlighted: boolean
   isDimmed: boolean
   isSearchMatch: boolean
+  isGhost?: boolean
   onClick: () => void
   onDoubleClick: () => void
 }
@@ -94,11 +95,14 @@ export function GraphNodeCard({
   isHighlighted,
   isDimmed,
   isSearchMatch,
+  isGhost = false,
   onClick,
   onDoubleClick,
 }: GraphNodeCardProps) {
   const config = NODE_CONFIGS[node.type]
   const { Icon } = config
+  const iconClass = isGhost ? 'text-slate-400 dark:text-slate-500' : config.iconClass
+  const sourceClass = isGhost ? 'text-slate-400/80 dark:text-slate-500/80' : config.sourceClass
 
   const ringClass = isSearchMatch
     ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-white dark:ring-offset-slate-950'
@@ -115,16 +119,18 @@ export function GraphNodeCard({
         top: y,
         width: NODE_W,
         height: NODE_H,
-        opacity: isDimmed ? 0.12 : 1,
+        opacity: isDimmed ? 0.12 : isGhost ? 0.58 : 1,
         transition: 'opacity 150ms ease, box-shadow 150ms ease',
         cursor: 'pointer',
         userSelect: 'none',
       }}
       className={[
-        'rounded-md border border-slate-200 dark:border-slate-700/80 border-l-4',
-        'bg-white dark:bg-slate-900',
+        'rounded-md border border-l-4',
+        isGhost
+          ? 'border-slate-300 dark:border-slate-700 border-l-slate-300 dark:border-l-slate-600 bg-slate-100/75 dark:bg-slate-800/55'
+          : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900',
         isHighlighted || isSelected ? 'shadow-md' : 'shadow-sm hover:shadow-md',
-        config.borderClass,
+        isGhost ? '' : config.borderClass,
         ringClass,
       ]
         .filter(Boolean)
@@ -134,9 +140,11 @@ export function GraphNodeCard({
     >
       {/* Top row: icon + label */}
       <div className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
-        <Icon className={`w-3.5 h-3.5 shrink-0 ${config.iconClass}`} />
+        <Icon className={`w-3.5 h-3.5 shrink-0 ${iconClass}`} />
         <span
-          className="flex-1 text-[11px] font-semibold text-slate-800 dark:text-slate-100 truncate leading-tight"
+          className={`flex-1 text-[11px] font-semibold truncate leading-tight ${
+            isGhost ? 'text-slate-600 dark:text-slate-300' : 'text-slate-800 dark:text-slate-100'
+          }`}
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
           {node.label}
@@ -150,7 +158,7 @@ export function GraphNodeCard({
       {/* Bottom row: source tag */}
       <div className="px-2 pb-1.5">
         <span
-          className={`text-[9px] uppercase tracking-widest font-semibold ${config.sourceClass}`}
+          className={`text-[9px] uppercase tracking-widest font-semibold ${sourceClass}`}
           style={{ fontFamily: "'JetBrains Mono', monospace" }}
         >
           {node.source}

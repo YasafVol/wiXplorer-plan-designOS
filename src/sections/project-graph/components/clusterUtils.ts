@@ -6,6 +6,7 @@ export interface ClusterNode {
   id: string          // e.g. 'cluster-page-shop'
   label: string       // root page label
   memberCount: number // total pages in this cluster
+  memberLabel?: string // optional unit label, defaults to "pages"
   alertCount: number  // aggregate across all members
   memberIds: string[] // all page IDs (root + descendants)
   rootPageId: string  // root page that anchors the cluster
