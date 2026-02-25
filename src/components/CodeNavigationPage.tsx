@@ -266,6 +266,14 @@ export function CodeNavigationPage() {
     })))
     return next
   }, [groupedNodes, nodeById])
+  const subGraphByGroupId = useMemo(() => {
+    const next = new Map<string, string>()
+    groupedNodes.forEach((group) => {
+      const subGraph = String((group.meta as { subGraph?: string } | undefined)?.subGraph ?? '').trim() || 'UNGROUPED'
+      next.set(group.id, subGraph)
+    })
+    return next
+  }, [groupedNodes])
 
   const visibleCodeNodeIds = useMemo(() => {
     const next: string[] = []
@@ -479,13 +487,14 @@ export function CodeNavigationPage() {
       return {
         id: `subgraph-outer-${subGraphLabel.toLowerCase()}`,
         label: subGraphLabel,
+        subGraph: subGraphLabel,
         x: minX - padX,
         y: minY - padTop,
         w: maxX - minX + padX * 2,
         h: maxY - minY + padTop + padBottom,
       }
     })
-    .filter(Boolean) as Array<{ id: string; label: string; x: number; y: number; w: number; h: number }>
+    .filter(Boolean) as Array<{ id: string; label: string; subGraph: string; x: number; y: number; w: number; h: number }>
 
   const extensionInnerBoxes = subgraphGroupEntries
     .filter((entry) => entry.isExpanded)
@@ -504,13 +513,24 @@ export function CodeNavigationPage() {
       return {
         id: `subgraph-inner-${entry.groupId}`,
         label: entry.groupLabel,
+        groupId: entry.groupId,
+        subGraph: entry.subGraphLabel,
         x: minX - padX,
         y: minY - padTop,
         w: maxX - minX + padX * 2,
         h: maxY - minY + padTop + padBottom,
       }
     })
-    .filter(Boolean) as Array<{ id: string; label: string; x: number; y: number; w: number; h: number }>
+    .filter(Boolean) as Array<{
+    id: string
+    label: string
+    groupId: string
+    subGraph: string
+    x: number
+    y: number
+    w: number
+    h: number
+  }>
 
   const subgraphBounds =
     outerSubgraphBoxes.length + extensionInnerBoxes.length > 0
@@ -1094,7 +1114,15 @@ export function CodeNavigationPage() {
                 />
               )}
 
-              {outerSubgraphBoxes.map((box) => (
+              {outerSubgraphBoxes.map((box) => {
+                const isSelected =
+                  (inspectorSelection.kind === 'extensionType' && inspectorSelection.subGraph === box.subGraph) ||
+                  (inspectorSelection.kind === 'extensionInstance' &&
+                    subGraphByGroupId.get(inspectorSelection.groupId) === box.subGraph) ||
+                  (inspectorSelection.kind === 'file' &&
+                    !!selectedInstanceId &&
+                    subGraphByGroupId.get(selectedInstanceId) === box.subGraph)
+                return (
                 <g key={box.id}>
                   <rect
                     x={toCanvasX(box.x)}
@@ -1103,8 +1131,10 @@ export function CodeNavigationPage() {
                     height={box.h}
                     rx={14}
                     ry={14}
-                    className="fill-rose-100/60 dark:fill-rose-900/25 stroke-rose-300 dark:stroke-rose-700"
-                    strokeWidth={1.6}
+                    className={`fill-rose-100/60 dark:fill-rose-900/25 ${
+                      isSelected ? 'stroke-indigo-500 dark:stroke-indigo-300' : 'stroke-rose-300 dark:stroke-rose-700'
+                    }`}
+                    strokeWidth={isSelected ? 2.2 : 1.6}
                   />
                   <text
                     x={toCanvasX(box.x) + 14}
@@ -1122,9 +1152,13 @@ export function CodeNavigationPage() {
                     {box.label}
                   </text>
                 </g>
-              ))}
+              )})}
 
-              {extensionInnerBoxes.map((box) => (
+              {extensionInnerBoxes.map((box) => {
+                const isSelected =
+                  (inspectorSelection.kind === 'extensionInstance' && inspectorSelection.groupId === box.groupId) ||
+                  (inspectorSelection.kind === 'file' && selectedInstanceId === box.groupId)
+                return (
                 <g key={box.id}>
                   <rect
                     x={toCanvasX(box.x)}
@@ -1133,8 +1167,10 @@ export function CodeNavigationPage() {
                     height={box.h}
                     rx={12}
                     ry={12}
-                    className="fill-rose-200/65 dark:fill-rose-800/35 stroke-rose-400 dark:stroke-rose-600"
-                    strokeWidth={1.4}
+                    className={`fill-rose-200/65 dark:fill-rose-800/35 ${
+                      isSelected ? 'stroke-indigo-500 dark:stroke-indigo-300' : 'stroke-rose-400 dark:stroke-rose-600'
+                    }`}
+                    strokeWidth={isSelected ? 1.9 : 1.4}
                   />
                   <text
                     x={toCanvasX(box.x) + 12}
@@ -1152,7 +1188,7 @@ export function CodeNavigationPage() {
                     {box.label}
                   </text>
                 </g>
-              ))}
+              )})}
 
               {visibleEdges.map((edge, idx) => {
                 const src = positions[edge.source]
@@ -1178,6 +1214,46 @@ export function CodeNavigationPage() {
                 )
               })}
             </svg>
+
+            {outerSubgraphBoxes.map((box) => (
+              <button
+                key={`${box.id}:hit`}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setSelectedNodeId(null)
+                  setInspectorSelection({ kind: 'extensionType', subGraph: box.subGraph })
+                }}
+                className="absolute rounded-[14px] border border-transparent hover:border-indigo-300/80 dark:hover:border-indigo-500/80 z-0"
+                style={{
+                  left: toCanvasX(box.x),
+                  top: toCanvasY(box.y),
+                  width: box.w,
+                  height: box.h,
+                }}
+                title={`Select ${box.subGraph}`}
+              />
+            ))}
+
+            {extensionInnerBoxes.map((box) => (
+              <button
+                key={`${box.id}:hit`}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setSelectedNodeId(null)
+                  setInspectorSelection({ kind: 'extensionInstance', groupId: box.groupId })
+                }}
+                className="absolute rounded-[12px] border border-transparent hover:border-indigo-300/80 dark:hover:border-indigo-500/80 z-10"
+                style={{
+                  left: toCanvasX(box.x),
+                  top: toCanvasY(box.y),
+                  width: box.w,
+                  height: box.h,
+                }}
+                title={`Select ${box.label}`}
+              />
+            ))}
 
             {visibleNodeIds.map((nodeId) => {
               const node = nodeById.get(nodeId)
@@ -1249,7 +1325,7 @@ export function CodeNavigationPage() {
                       setInspectorSelection({ kind: 'file', nodeId: node.id })
                     }
                   }}
-                  className={`absolute border border-l-4 rounded-md shadow-sm hover:shadow-md px-3 text-left transition-all ${
+                  className={`absolute z-30 border border-l-4 rounded-md shadow-sm hover:shadow-md px-3 text-left transition-all ${
                     isGhost
                       ? 'border-slate-300 dark:border-slate-700 border-l-slate-300 dark:border-l-slate-600 bg-slate-100/75 dark:bg-slate-800/55'
                       : `bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700/80 ${tone.border}`

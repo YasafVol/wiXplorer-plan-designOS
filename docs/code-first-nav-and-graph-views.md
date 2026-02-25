@@ -158,6 +158,9 @@ The right-panel hierarchy list is the selector source of truth:
 - top-level subgraph rows select `extensionType`
 - nested extension rows select `extensionInstance`
 - rows are independently collapsible for scanning large projects
+- canvas container clicks are valid selector entry points:
+  - outer subgraph/domain container selects `extensionType`
+  - inner extension-instance container selects `extensionInstance`
 
 ### Grouping pattern (canonical)
 

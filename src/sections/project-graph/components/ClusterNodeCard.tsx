@@ -13,6 +13,8 @@ interface ClusterNodeCardProps {
   isSearchMatch: boolean
   onClick: () => void
   onToggleExpand: (e: React.MouseEvent) => void
+  showToggle?: boolean
+  toggleLabel?: string
 }
 
 export function ClusterNodeCard({
@@ -26,6 +28,8 @@ export function ClusterNodeCard({
   isSearchMatch,
   onClick,
   onToggleExpand,
+  showToggle = true,
+  toggleLabel,
 }: ClusterNodeCardProps) {
   const ringClass = isSearchMatch
     ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-white dark:ring-offset-slate-950'
@@ -42,6 +46,7 @@ export function ClusterNodeCard({
         top: y,
         width: NODE_W,
         height: NODE_H,
+        zIndex: 30,
         opacity: isDimmed ? 0.12 : 1,
         transition: 'opacity 150ms ease, box-shadow 150ms ease',
         cursor: 'pointer',
@@ -79,18 +84,31 @@ export function ClusterNodeCard({
           className="text-[9px] uppercase tracking-widest font-semibold text-indigo-400/70 dark:text-indigo-500/60"
           style={{ fontFamily: "'JetBrains Mono', monospace" }}
         >
-          {cluster.memberCount} pages
+          {cluster.memberCount} {cluster.memberLabel ?? 'pages'}
         </span>
-        <button
-          onClick={onToggleExpand}
-          className="w-3.5 h-3.5 flex items-center justify-center text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300 transition-colors"
-        >
-          {isExpanded ? (
-            <ChevronDown className="w-3 h-3" />
-          ) : (
-            <ChevronRight className="w-3 h-3" />
-          )}
-        </button>
+        {showToggle && (
+          <button
+            onClick={onToggleExpand}
+            className={`${
+              toggleLabel
+                ? 'h-5 px-1.5 rounded text-[9px] uppercase tracking-wider font-semibold border border-indigo-200 dark:border-indigo-800'
+                : 'w-3.5 h-3.5'
+            } flex items-center justify-center text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300 transition-colors`}
+            style={toggleLabel ? { fontFamily: "'JetBrains Mono', monospace" } : undefined}
+          >
+            {toggleLabel ? (
+              toggleLabel
+            ) : (
+              <>
+                {isExpanded ? (
+                  <ChevronDown className="w-3 h-3" />
+                ) : (
+                  <ChevronRight className="w-3 h-3" />
+                )}
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   )
