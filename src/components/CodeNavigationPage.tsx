@@ -22,7 +22,7 @@ type GraphEdge = {
 }
 
 type NodePosition = { x: number; y: number; w: number; h: number }
-type LayoutMode = 'stratified' | 'crossSection'
+type LayoutMode = 'stratified' | 'crossSection' | 'hybridForce'
 type ScopeMode = 'project' | 'code'
 type LaneTone = 'page' | 'app' | 'collection' | 'client' | 'server'
 type LaneDef = { id: string; label: string; y: number; top: number; bottom: number; tone: LaneTone; dashed?: boolean }
@@ -44,6 +44,7 @@ const MIN_CANVAS_W = 980
 const MIN_CANVAS_H = 880
 const CANVAS_PAD_X = 260
 const CANVAS_PAD_Y = 220
+const CODE_ROW_SPACING = 280
 const STRATIFIED_H = 122
 const CROSS_GUIDE_SPAN_FROM_CENTER = 560
 
@@ -162,6 +163,88 @@ function distributeX(count: number, spacing: number): number[] {
   if (count <= 0) return []
   const offset = ((count - 1) * spacing) / 2
   return Array.from({ length: count }, (_, index) => index * spacing - offset)
+}
+
+type HybridForceNode = {
+  id: string
+  x: number
+  y: number
+  anchorX: number
+  targetY: number
+  radius: number
+  subGraph?: string
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function applyHybridLevelForces(nodes: HybridForceNode[]): Map<string, { x: number; y: number }> {
+  const state = nodes.map((node) => ({ ...node }))
+  const subGraphTargetX = new Map<string, number>()
+  const subGraphBuckets = new Map<string, { sum: number; count: number }>()
+
+  state.forEach((node) => {
+    if (!node.subGraph) return
+    const bucket = subGraphBuckets.get(node.subGraph) ?? { sum: 0, count: 0 }
+    bucket.sum += node.anchorX
+    bucket.count += 1
+    subGraphBuckets.set(node.subGraph, bucket)
+  })
+
+  subGraphBuckets.forEach((bucket, key) => {
+    subGraphTargetX.set(key, bucket.sum / Math.max(1, bucket.count))
+  })
+
+  for (let iteration = 0; iteration < 180; iteration += 1) {
+    const deltaById = new Map<string, { dx: number; dy: number }>()
+    state.forEach((node) => deltaById.set(node.id, { dx: 0, dy: 0 }))
+
+    for (let i = 0; i < state.length; i += 1) {
+      for (let j = i + 1; j < state.length; j += 1) {
+        const a = state[i]
+        const b = state[j]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const dist = Math.hypot(dx, dy)
+        const minDist = a.radius + b.radius + 12
+        if (dist >= minDist) continue
+
+        const safeDist = dist > 0.0001 ? dist : 0.0001
+        const ux = dx / safeDist
+        const uy = dy / safeDist
+        const overlap = minDist - safeDist
+        const push = overlap * 0.48
+
+        const deltaA = deltaById.get(a.id)
+        const deltaB = deltaById.get(b.id)
+        if (!deltaA || !deltaB) continue
+
+        deltaA.dx -= ux * push
+        deltaA.dy -= uy * push * 0.22
+        deltaB.dx += ux * push
+        deltaB.dy += uy * push * 0.22
+      }
+    }
+
+    state.forEach((node) => {
+      const delta = deltaById.get(node.id)
+      if (!delta) return
+
+      node.x += delta.dx
+      node.y += delta.dy
+
+      const groupTargetX = node.subGraph ? subGraphTargetX.get(node.subGraph) : undefined
+      if (typeof groupTargetX === 'number') {
+        node.x += (groupTargetX - node.x) * 0.026
+      }
+      node.x += (node.anchorX - node.x) * 0.035
+      node.y += (node.targetY - node.y) * 0.24
+      node.y = clamp(node.y, node.targetY - 44, node.targetY + 44)
+    })
+  }
+
+  return new Map(state.map((node) => [node.id, { x: node.x, y: node.y }]))
 }
 
 function edgeRelation(edgeType: string): RenderEdge['relation'] {
@@ -352,11 +435,12 @@ export function CodeNavigationPage() {
     { id: 'client', label: 'Client Code', y: -70, top: -140, bottom: 0, tone: 'client' },
     { id: 'server', label: 'Server Code', y: 70, top: 0, bottom: 140, tone: 'server' },
   ]
+  const isCrossSectionLayout = layoutMode === 'crossSection'
 
   const stratifiedLaneById = new Map(stratifiedLanes.map((lane) => [lane.id, lane]))
   const crossSectionLaneById = new Map(crossSectionLanes.map((lane) => [lane.id, lane]))
   const laneCenterY = (laneId: string) => {
-    const laneMap = layoutMode === 'stratified' ? stratifiedLaneById : crossSectionLaneById
+    const laneMap = isCrossSectionLayout ? crossSectionLaneById : stratifiedLaneById
     return laneMap.get(laneId)?.y ?? 0
   }
   const toNodePos = (x: number, centerY: number, w: number, h: number): NodePosition => ({
@@ -394,15 +478,15 @@ export function CodeNavigationPage() {
     positions[extensionsRoot.id] = toNodePos(0, 0, EXTENSIONS_W, EXTENSIONS_H)
   }
 
-  if (layoutMode === 'stratified') {
-    assignRow(clientCodeNodeIds, laneCenterY('client') + 58, CODE_W, CODE_H, 226)
-    assignRow(serverCodeNodeIds, laneCenterY('server') + 58, CODE_W, CODE_H, 226)
+  if (!isCrossSectionLayout) {
+    assignRow(clientCodeNodeIds, laneCenterY('client') + 58, CODE_W, CODE_H, CODE_ROW_SPACING)
+    assignRow(serverCodeNodeIds, laneCenterY('server') + 58, CODE_W, CODE_H, CODE_ROW_SPACING)
     assignRow(tablesNodeIds, laneCenterY('collections-bottom') + 4, COLLECTION_W, COLLECTION_H, 220)
     assignRow(appsNodeIds, laneCenterY('apps-bottom') + 4, APP_W, APP_H, 220)
     assignRow(pagesNodeIds, laneCenterY('pages-bottom') + 4, PAGE_W, PAGE_H, 170)
   } else {
-    assignRow(clientCodeNodeIds, laneCenterY('client') + 2, CODE_W, CODE_H, 230)
-    assignRow(serverCodeNodeIds, laneCenterY('server') + 2, CODE_W, CODE_H, 230)
+    assignRow(clientCodeNodeIds, laneCenterY('client') + 2, CODE_W, CODE_H, CODE_ROW_SPACING)
+    assignRow(serverCodeNodeIds, laneCenterY('server') + 2, CODE_W, CODE_H, CODE_ROW_SPACING)
 
     const collectionX = guideX('guide-collections-right', rightGuideStart)
     const appX = guideX('guide-apps-right', rightGuideStart + CROSS_GUIDE_GAP)
@@ -417,6 +501,38 @@ export function CodeNavigationPage() {
     pagesNodeIds.forEach((nodeId, index) => {
       const y = index % 2 === 0 ? laneCenterY('client') - 46 : laneCenterY('server') + 106
       positions[nodeId] = toNodePos(pageX + Math.floor(index / 2) * 160, y, PAGE_W, PAGE_H)
+    })
+  }
+
+  if (layoutMode === 'hybridForce') {
+    const forceNodes = visibleCodeNodeIds
+      .filter((nodeId) => nodeId !== extensionsRoot?.id && !!positions[nodeId])
+      .map((nodeId) => {
+        const pos = positions[nodeId]
+        const node = nodeById.get(nodeId)
+        const laneId = getNodeFileType(node) === 'backend' ? 'server' : 'client'
+        const groupId = groupByMemberId.get(nodeId)
+        const fallbackSubGraph = String((node?.meta as { subGraph?: string } | undefined)?.subGraph ?? '').trim()
+        const subGraph =
+          subGraphByGroupId.get(nodeId) ??
+          (groupId ? subGraphByGroupId.get(groupId) : undefined) ??
+          (fallbackSubGraph || undefined)
+        return {
+          id: nodeId,
+          x: pos.x + pos.w / 2,
+          y: pos.y + pos.h / 2,
+          anchorX: pos.x + pos.w / 2,
+          targetY: laneCenterY(laneId) + 58,
+          radius: pos.w / 2 + 14,
+          subGraph,
+        }
+      })
+
+    const solvedCenters = applyHybridLevelForces(forceNodes)
+    solvedCenters.forEach((center, nodeId) => {
+      const pos = positions[nodeId]
+      if (!pos) return
+      positions[nodeId] = toNodePos(center.x, center.y, pos.w, pos.h)
     })
   }
 
@@ -552,11 +668,11 @@ export function CodeNavigationPage() {
   const h = (laneCenterY('server') - laneCenterY('client')) / 3
   const projectBandOffsets = [1.5, 2, 2.5].map((multiplier) => multiplier * h)
   const stratifiedGuideYs =
-    scopeMode === 'project' && layoutMode === 'stratified'
+    scopeMode === 'project' && !isCrossSectionLayout
       ? [0, ...projectBandOffsets, ...projectBandOffsets.map((value) => -value)]
       : [0]
-  const crossGuideXs = layoutMode === 'crossSection' ? crossSectionGuides.map((guide) => guide.x) : [0]
-  const crossLaneYs = layoutMode === 'crossSection' ? crossSectionLanes.map((lane) => lane.y) : []
+  const crossGuideXs = isCrossSectionLayout ? crossSectionGuides.map((guide) => guide.x) : [0]
+  const crossLaneYs = isCrossSectionLayout ? crossSectionLanes.map((lane) => lane.y) : []
 
   const boundsMinX = Math.min(baseBounds.minX, ...crossGuideXs) - CANVAS_PAD_X
   const boundsMaxX = Math.max(baseBounds.maxX, ...crossGuideXs) + CANVAS_PAD_X
@@ -850,6 +966,16 @@ export function CodeNavigationPage() {
             Stratified
           </button>
           <button
+            onClick={() => setLayoutMode('hybridForce')}
+            className={`px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              layoutMode === 'hybridForce'
+                ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-900'
+                : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            Hybrid force
+          </button>
+          <button
             onClick={() => setLayoutMode('crossSection')}
             className={`px-2.5 py-1 text-[11px] font-semibold transition-colors ${
               layoutMode === 'crossSection'
@@ -941,7 +1067,7 @@ export function CodeNavigationPage() {
             }}
           >
             <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              {layoutMode === 'stratified' && (
+              {layoutMode !== 'crossSection' && (
                 <>
                   <line
                     x1={0}
