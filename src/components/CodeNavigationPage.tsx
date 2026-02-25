@@ -1116,12 +1116,7 @@ export function CodeNavigationPage() {
 
               {outerSubgraphBoxes.map((box) => {
                 const isSelected =
-                  (inspectorSelection.kind === 'extensionType' && inspectorSelection.subGraph === box.subGraph) ||
-                  (inspectorSelection.kind === 'extensionInstance' &&
-                    subGraphByGroupId.get(inspectorSelection.groupId) === box.subGraph) ||
-                  (inspectorSelection.kind === 'file' &&
-                    !!selectedInstanceId &&
-                    subGraphByGroupId.get(selectedInstanceId) === box.subGraph)
+                  inspectorSelection.kind === 'extensionType' && inspectorSelection.subGraph === box.subGraph
                 return (
                 <g key={box.id}>
                   <rect
@@ -1156,8 +1151,7 @@ export function CodeNavigationPage() {
 
               {extensionInnerBoxes.map((box) => {
                 const isSelected =
-                  (inspectorSelection.kind === 'extensionInstance' && inspectorSelection.groupId === box.groupId) ||
-                  (inspectorSelection.kind === 'file' && selectedInstanceId === box.groupId)
+                  inspectorSelection.kind === 'extensionInstance' && inspectorSelection.groupId === box.groupId
                 return (
                 <g key={box.id}>
                   <rect
