@@ -6,6 +6,22 @@ Design OS is a **product planning and design tool** that helps users define thei
 
 ---
 
+## Decision Documentation Protocol
+
+When a product or design decision is made during planning, implementation, or review, record it in `docs/code-first-nav-and-graph-views.md` in the same working session.
+
+For each decision entry, capture:
+- what changed (the decision),
+- why it was chosen (rationale/tradeoff),
+- impacted areas/files,
+- follow-ups or open questions (if any).
+
+This applies to:
+- Design OS application decisions (`src/` behavior and UX),
+- product planning and export decisions (`product/`, `product-plan/`, section specs).
+
+---
+
 ## Understanding Design OS Context
 
 When working in Design OS, be aware of two distinct contexts:

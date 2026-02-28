@@ -35,7 +35,7 @@ type GuideDef = {
 }
 type RenderEdge = { source: string; target: string; relation: 'code' | 'data' | 'host' }
 type InspectorSelection =
-  | { kind: 'project' }
+  | { kind: 'empty' }
   | { kind: 'extensionType'; subGraph: string }
   | { kind: 'extensionInstance'; groupId: string }
   | { kind: 'file'; nodeId: string }
@@ -265,7 +265,7 @@ export function CodeNavigationPage() {
   const [scopeMode, setScopeMode] = useState<ScopeMode>('code')
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set())
   const [collapsedSubgraphs, setCollapsedSubgraphs] = useState<Set<string>>(new Set())
-  const [inspectorSelection, setInspectorSelection] = useState<InspectorSelection>({ kind: 'project' })
+  const [inspectorSelection, setInspectorSelection] = useState<InspectorSelection>({ kind: 'empty' })
   const [lastEditNote, setLastEditNote] = useState('')
   const [canvasTransform, setCanvasTransform] = useState({ x: 40, y: 24, scale: 0.78 })
   const containerRef = useRef<HTMLDivElement>(null)
@@ -358,7 +358,113 @@ export function CodeNavigationPage() {
     return next
   }, [groupedNodes])
 
-  const visibleCodeNodeIds = useMemo(() => {
+  const selectedTypeSubGraph =
+    inspectorSelection.kind === 'extensionType' ? inspectorSelection.subGraph : null
+  const selectedInstanceId =
+    inspectorSelection.kind === 'extensionInstance'
+      ? inspectorSelection.groupId
+      : inspectorSelection.kind === 'file'
+        ? groupByMemberId.get(inspectorSelection.nodeId) ?? null
+        : null
+  const selectedInstanceNode = selectedInstanceId ? nodeById.get(selectedInstanceId) ?? null : null
+  const selectedInstanceMembers = selectedInstanceId ? membersByGroupId.get(selectedInstanceId) ?? [] : []
+  const selectedFileNode =
+    inspectorSelection.kind === 'file' ? nodeById.get(inspectorSelection.nodeId) ?? null : null
+  const selectedSeedIds = useMemo(() => {
+    if (inspectorSelection.kind === 'empty') return new Set<string>()
+    if (inspectorSelection.kind === 'extensionType') {
+      const typeGroupIds = groupIdsBySubGraph.get(inspectorSelection.subGraph) ?? []
+      const next = new Set<string>()
+      typeGroupIds.forEach((groupId) => {
+        next.add(groupId)
+        ;(membersByGroupId.get(groupId) ?? []).forEach((member) => next.add(member.id))
+      })
+      return next
+    }
+    if (inspectorSelection.kind === 'extensionInstance') {
+      const next = new Set<string>([inspectorSelection.groupId])
+      ;(membersByGroupId.get(inspectorSelection.groupId) ?? []).forEach((member) => next.add(member.id))
+      return next
+    }
+    return new Set<string>([inspectorSelection.nodeId])
+  }, [groupIdsBySubGraph, inspectorSelection, membersByGroupId])
+
+  const connectedEntities = useMemo(() => {
+    if (selectedSeedIds.size === 0) return [] as GraphNode[]
+
+    const adjacency = new Map<string, Set<string>>()
+    data.edges.forEach((edge) => {
+      if (edge.type === 'contains') return
+      if (!adjacency.has(edge.source)) adjacency.set(edge.source, new Set())
+      if (!adjacency.has(edge.target)) adjacency.set(edge.target, new Set())
+      adjacency.get(edge.source)?.add(edge.target)
+      adjacency.get(edge.target)?.add(edge.source)
+    })
+
+    const oneHop = new Set<string>()
+    selectedSeedIds.forEach((seedId) => {
+      adjacency.get(seedId)?.forEach((id) => {
+        if (!selectedSeedIds.has(id)) oneHop.add(id)
+      })
+    })
+
+    if (inspectorSelection.kind !== 'extensionInstance' && inspectorSelection.kind !== 'file') {
+      return [...oneHop]
+        .map((id) => nodeById.get(id))
+        .filter((node): node is GraphNode => !!node)
+        .sort((a, b) => a.label.localeCompare(b.label))
+    }
+
+    const queue = [...selectedSeedIds].map((id) => ({ id, depth: 0 }))
+    const visited = new Set<string>(selectedSeedIds)
+    const deepReachable = new Set<string>()
+
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) continue
+      adjacency.get(current.id)?.forEach((nextId) => {
+        if (visited.has(nextId)) return
+        visited.add(nextId)
+        deepReachable.add(nextId)
+        queue.push({ id: nextId, depth: current.depth + 1 })
+      })
+    }
+
+    const filtered = new Set<string>()
+    oneHop.forEach((id) => {
+      const node = nodeById.get(id)
+      if (node?.type === 'code') filtered.add(id)
+    })
+    deepReachable.forEach((id) => {
+      const node = nodeById.get(id)
+      if (!node || selectedSeedIds.has(node.id)) return
+      if (node.type === 'table' || node.type === 'app' || node.type === 'page') {
+        filtered.add(id)
+      }
+    })
+
+    return [...filtered]
+      .map((id) => nodeById.get(id))
+      .filter((node): node is GraphNode => !!node)
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [data.edges, inspectorSelection.kind, nodeById, selectedSeedIds])
+  const connectedEntitiesByType = useMemo(() => {
+    const grouped = new Map<GraphNode['type'], GraphNode[]>()
+    connectedEntities.forEach((node) => {
+      if (!grouped.has(node.type)) grouped.set(node.type, [])
+      grouped.get(node.type)?.push(node)
+    })
+    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
+  }, [connectedEntities])
+  const selectedTypeGroupIds = selectedTypeSubGraph ? groupIdsBySubGraph.get(selectedTypeSubGraph) ?? [] : []
+  const selectedMetadataNode =
+    inspectorSelection.kind === 'file'
+      ? selectedFileNode
+      : inspectorSelection.kind === 'extensionInstance'
+        ? selectedInstanceNode
+        : null
+
+  const baseVisibleCodeNodeIds = useMemo(() => {
     const next: string[] = []
     if (extensionsRoot) next.push(extensionsRoot.id)
     groupedNodes.forEach((group) => {
@@ -372,8 +478,17 @@ export function CodeNavigationPage() {
     return next
   }, [extensionsRoot, groupedNodes, membersByGroupId, expandedGroupIds])
 
-  const visibleNodeIds =
-    scopeMode === 'code' ? visibleCodeNodeIds : [...visibleCodeNodeIds, ...nonCodeNodes.map((node) => node.id)]
+  const baseVisibleNodeIds =
+    scopeMode === 'code'
+      ? baseVisibleCodeNodeIds
+      : [...baseVisibleCodeNodeIds, ...nonCodeNodes.map((node) => node.id)]
+  const baseVisibleNodeSet = new Set(baseVisibleNodeIds)
+  const tempRevealNodeIds = useMemo(() => {
+    if (inspectorSelection.kind !== 'extensionInstance' && inspectorSelection.kind !== 'file') return []
+    return connectedEntities.map((node) => node.id).filter((id) => !baseVisibleNodeSet.has(id))
+  }, [inspectorSelection.kind, connectedEntities, baseVisibleNodeSet])
+  const visibleNodeIds = [...new Set([...baseVisibleNodeIds, ...tempRevealNodeIds])]
+  const visibleCodeNodeIds = visibleNodeIds.filter((nodeId) => nodeById.get(nodeId)?.type === 'code')
   const visibleNodeSet = new Set(visibleNodeIds)
 
   const laneWeight = (id: string) => (id === 'client' || id === 'server' ? 3 : 1)
@@ -691,7 +806,11 @@ export function CodeNavigationPage() {
     data.edges.forEach((edge) => {
       if (edge.type === 'contains') return
       if (!visibleNodeSet.has(edge.source) || !visibleNodeSet.has(edge.target)) return
-      if (scopeMode === 'code') {
+      if (
+        scopeMode === 'code' &&
+        inspectorSelection.kind !== 'extensionInstance' &&
+        inspectorSelection.kind !== 'file'
+      ) {
         const sourceNode = nodeById.get(edge.source)
         const targetNode = nodeById.get(edge.target)
         if (sourceNode?.type !== 'code' || targetNode?.type !== 'code') return
@@ -720,7 +839,7 @@ export function CodeNavigationPage() {
     })
 
     return next
-  }, [data.edges, expandedGroupIds, membersByGroupId, nodeById, scopeMode, visibleNodeSet])
+  }, [data.edges, expandedGroupIds, membersByGroupId, nodeById, scopeMode, visibleNodeSet, inspectorSelection.kind])
 
   const highlightedNodeIds = useMemo(() => {
     if (!highlightChain) return new Set<string>()
@@ -816,93 +935,18 @@ export function CodeNavigationPage() {
     return `M ${srcX} ${srcY} C ${srcX} ${srcY - arc} ${tgtX} ${tgtY - arc} ${tgtX} ${tgtY}`
   }
 
-  const selectedTypeSubGraph =
-    inspectorSelection.kind === 'extensionType' ? inspectorSelection.subGraph : null
-  const selectedInstanceId =
-    inspectorSelection.kind === 'extensionInstance'
-      ? inspectorSelection.groupId
-      : inspectorSelection.kind === 'file'
-        ? groupByMemberId.get(inspectorSelection.nodeId) ?? null
-        : null
-  const selectedInstanceNode = selectedInstanceId ? nodeById.get(selectedInstanceId) ?? null : null
-  const selectedInstanceMembers = selectedInstanceId ? membersByGroupId.get(selectedInstanceId) ?? [] : []
-  const selectedFileNode =
-    inspectorSelection.kind === 'file' ? nodeById.get(inspectorSelection.nodeId) ?? null : null
-  const selectedGroupCluster: ClusterNode | null =
-    selectedInstanceNode && selectedInstanceId
-      ? {
-          id: selectedInstanceId,
-          label: selectedInstanceNode.label,
-          memberCount: selectedInstanceMembers.length,
-          memberLabel: 'files',
-          alertCount: selectedInstanceNode.alertCount ?? 0,
-          memberIds: selectedInstanceMembers.map((member) => member.id),
-          rootPageId: selectedInstanceId,
-        }
-      : null
   const inspectorTitle = (() => {
-    if (inspectorSelection.kind === 'project') return project.name
+    if (inspectorSelection.kind === 'empty') return 'Empty state'
     if (inspectorSelection.kind === 'extensionType') return inspectorSelection.subGraph
     if (inspectorSelection.kind === 'extensionInstance') return selectedInstanceNode?.label ?? 'Extension instance'
     return selectedFileNode?.label ?? selectedNode?.label ?? 'File'
   })()
   const inspectorLevelLabel = (() => {
-    if (inspectorSelection.kind === 'project') return 'Project'
+    if (inspectorSelection.kind === 'empty') return 'No selection'
     if (inspectorSelection.kind === 'extensionType') return 'Extension type'
     if (inspectorSelection.kind === 'extensionInstance') return 'Extension instance'
     return 'File'
   })()
-  const selectedSeedIds = useMemo(() => {
-    if (inspectorSelection.kind === 'project') return new Set(visibleNodeIds)
-    if (inspectorSelection.kind === 'extensionType') {
-      const typeGroupIds = groupIdsBySubGraph.get(inspectorSelection.subGraph) ?? []
-      const next = new Set<string>()
-      typeGroupIds.forEach((groupId) => {
-        next.add(groupId)
-        ;(membersByGroupId.get(groupId) ?? []).forEach((member) => next.add(member.id))
-      })
-      return next
-    }
-    if (inspectorSelection.kind === 'extensionInstance') {
-      const next = new Set<string>([inspectorSelection.groupId])
-      ;(membersByGroupId.get(inspectorSelection.groupId) ?? []).forEach((member) => next.add(member.id))
-      return next
-    }
-    return new Set<string>([inspectorSelection.nodeId])
-  }, [groupIdsBySubGraph, inspectorSelection, membersByGroupId, visibleNodeIds])
-  const connectedEntities = useMemo(() => {
-    const connected = new Map<string, GraphNode>()
-    data.edges.forEach((edge) => {
-      if (edge.type === 'contains') return
-      const sourceIn = selectedSeedIds.has(edge.source)
-      const targetIn = selectedSeedIds.has(edge.target)
-      if (!sourceIn && !targetIn) return
-      if (sourceIn && !targetIn) {
-        const node = nodeById.get(edge.target)
-        if (node) connected.set(node.id, node)
-      }
-      if (targetIn && !sourceIn) {
-        const node = nodeById.get(edge.source)
-        if (node) connected.set(node.id, node)
-      }
-    })
-    return [...connected.values()].sort((a, b) => a.label.localeCompare(b.label))
-  }, [data.edges, nodeById, selectedSeedIds])
-  const connectedEntitiesByType = useMemo(() => {
-    const grouped = new Map<GraphNode['type'], GraphNode[]>()
-    connectedEntities.forEach((node) => {
-      if (!grouped.has(node.type)) grouped.set(node.type, [])
-      grouped.get(node.type)?.push(node)
-    })
-    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
-  }, [connectedEntities])
-  const selectedTypeGroupIds = selectedTypeSubGraph ? groupIdsBySubGraph.get(selectedTypeSubGraph) ?? [] : []
-  const selectedMetadataNode =
-    inspectorSelection.kind === 'file'
-      ? selectedFileNode
-      : inspectorSelection.kind === 'extensionInstance'
-        ? selectedInstanceNode
-        : null
   const extensionHierarchy = useMemo(() => {
     const bySubGraph = new Map<string, GraphNode[]>()
     groupedNodes.forEach((ext) => {
@@ -917,6 +961,50 @@ export function CodeNavigationPage() {
         extensions: [...extensions].sort((a, b) => a.label.localeCompare(b.label)),
       }))
   }, [groupedNodes])
+  const instanceSummaryById = useMemo(() => {
+    const next = new Map<string, string>()
+    groupedNodes.forEach((group) => {
+      const meta = group.meta as { description?: string; subGraph?: string } | undefined
+      const explicit = String(meta?.description ?? '').trim()
+      if (explicit) {
+        next.set(group.id, explicit)
+        return
+      }
+      const relation = data.edges.find(
+        (edge) =>
+          edge.type !== 'contains' && (edge.source === group.id || edge.target === group.id)
+      )
+      const relatedId = relation
+        ? relation.source === group.id
+          ? relation.target
+          : relation.source
+        : null
+      const relatedNode = relatedId ? nodeById.get(relatedId) : null
+      const subGraph = String(meta?.subGraph ?? 'extensions')
+      if (relatedNode) {
+        next.set(group.id, `Handles ${subGraph.toLowerCase()} flow for ${relatedNode.label}.`)
+      } else {
+        next.set(group.id, `Implements ${subGraph.toLowerCase()} extension behavior.`)
+      }
+    })
+    return next
+  }, [groupedNodes, data.edges, nodeById])
+  const selectedInstanceHandler = selectedInstanceMembers.find((member) => getNodeKind(member) === 'handlerFile') ?? null
+  const selectedInstanceBuilder = selectedInstanceMembers.find((member) => getNodeKind(member) === 'builderFile') ?? null
+  const selectedHandlerPath = String(
+    (selectedInstanceHandler?.meta as { path?: string } | undefined)?.path ?? ''
+  )
+  const handlerEditPrompt = selectedInstanceHandler
+    ? `Update ${selectedInstanceHandler.label} to improve ${selectedInstanceNode?.label ?? 'this extension instance'} behavior while preserving current data/edge contracts.`
+    : ''
+  const toggleInstanceExpansion = (groupId: string) => {
+    setExpandedGroupIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
+  }
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
@@ -1045,7 +1133,7 @@ export function CodeNavigationPage() {
             if (dragState.current.hasDragged) return
             if (!(event.target as HTMLElement).closest('[data-node]')) {
               setSelectedNodeId(null)
-              setInspectorSelection({ kind: 'project' })
+              setInspectorSelection({ kind: 'empty' })
             }
           }}
         >
@@ -1552,96 +1640,56 @@ export function CodeNavigationPage() {
                 </ul>
               </div>
 
-              <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-950/40">
+              {inspectorSelection.kind === 'empty' && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-950/40">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Empty state</div>
+                  <p className="text-[12px] text-slate-600 dark:text-slate-400">
+                    Select an extension type, then an instance, then a file. The inspector is context-aware and will reveal missing related nodes while an instance/file is selected.
+                  </p>
+                </div>
+              )}
+
+              {inspectorSelection.kind === 'extensionType' && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    Instances ({selectedTypeGroupIds.length})
+                  </div>
+                  <div className="space-y-2">
+                    {selectedTypeGroupIds.map((groupId) => {
+                      const instanceNode = nodeById.get(groupId)
+                      if (!instanceNode) return null
+                      return (
+                        <button
+                          key={`type-instance-${groupId}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedNodeId(groupId)
+                            setInspectorSelection({ kind: 'extensionInstance', groupId })
+                          }}
+                          className="w-full text-left rounded border border-slate-200 dark:border-slate-700 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                        >
+                          <div className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{instanceNode.label}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {instanceSummaryById.get(groupId) ?? 'No summary available.'}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(inspectorSelection.kind === 'extensionInstance' || inspectorSelection.kind === 'file') && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-950/40">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Collapse behavior</div>
-                    {inspectorSelection.kind === 'project' && (
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            setExpandedGroupIds(new Set())
-                            setLastEditNote('Collapsed all extension instances.')
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          Collapse all
-                        </button>
-                        <button
-                          onClick={() => {
-                            setExpandedGroupIds(new Set(groupedNodes.map((group) => group.id)))
-                            setLastEditNote('Expanded all extension instances.')
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          Expand all
-                        </button>
-                      </div>
-                    )}
-                    {inspectorSelection.kind === 'extensionType' && (
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            setExpandedGroupIds((prev) => {
-                              const next = new Set(prev)
-                              selectedTypeGroupIds.forEach((id) => next.delete(id))
-                              return next
-                            })
-                            setLastEditNote(`Collapsed all instances in ${inspectorSelection.subGraph}.`)
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          Collapse type
-                        </button>
-                        <button
-                          onClick={() => {
-                            setExpandedGroupIds((prev) => {
-                              const next = new Set(prev)
-                              selectedTypeGroupIds.forEach((id) => next.add(id))
-                              return next
-                            })
-                            setLastEditNote(`Expanded all instances in ${inspectorSelection.subGraph}.`)
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          Expand type
-                        </button>
-                      </div>
-                    )}
-                    {inspectorSelection.kind === 'extensionInstance' && selectedGroupCluster && (
+                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Instance hierarchy</div>
+                    {selectedInstanceId && (
                       <button
                         onClick={() => {
-                          const groupId = inspectorSelection.groupId
-                          setExpandedGroupIds((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(groupId)) next.delete(groupId)
-                            else next.add(groupId)
-                            return next
-                          })
+                          toggleInstanceExpansion(selectedInstanceId)
+                          const parentLabel = nodeById.get(selectedInstanceId)?.label ?? 'instance'
                           setLastEditNote(
-                            expandedGroupIds.has(groupId)
-                              ? `Collapsed ${selectedGroupCluster.label}.`
-                              : `Expanded ${selectedGroupCluster.label}.`
-                          )
-                        }}
-                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      >
-                        <ChevronsUpDown className="w-3 h-3" />
-                        {expandedGroupIds.has(inspectorSelection.groupId) ? 'Collapse instance' : 'Expand instance'}
-                      </button>
-                    )}
-                    {inspectorSelection.kind === 'file' && selectedInstanceId && (
-                      <button
-                        onClick={() => {
-                          const groupId = selectedInstanceId
-                          setExpandedGroupIds((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(groupId)) next.delete(groupId)
-                            else next.add(groupId)
-                            return next
-                          })
-                          const parentLabel = nodeById.get(groupId)?.label ?? 'parent instance'
-                          setLastEditNote(
-                            expandedGroupIds.has(groupId)
+                            expandedGroupIds.has(selectedInstanceId)
                               ? `Collapsed ${parentLabel}.`
                               : `Expanded ${parentLabel}.`
                           )
@@ -1649,23 +1697,154 @@ export function CodeNavigationPage() {
                         className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
                         <ChevronsUpDown className="w-3 h-3" />
-                        {expandedGroupIds.has(selectedInstanceId) ? 'Collapse parent' : 'Expand parent'}
+                        {expandedGroupIds.has(selectedInstanceId) ? 'Collapse instance' : 'Expand instance'}
                       </button>
                     )}
                   </div>
                   <p className="text-[12px] text-slate-600 dark:text-slate-400">
-                    {inspectorSelection.kind === 'project' &&
-                      'Project-level controls affect all extension instances.'}
-                    {inspectorSelection.kind === 'extensionType' &&
-                      `Type-level controls affect all instances under ${inspectorSelection.subGraph}.`}
-                    {inspectorSelection.kind === 'extensionInstance' &&
-                      `Instance has ${selectedInstanceMembers.length} composing file${selectedInstanceMembers.length === 1 ? '' : 's'}.`}
-                    {inspectorSelection.kind === 'file' &&
-                      (selectedInstanceId
-                        ? 'File-level control affects the parent extension instance.'
-                        : 'File is not associated with an extension instance.')}
+                    Instance is one level above file. Files inherit instance context and connected-entity reveal behavior.
                   </p>
+                  {inspectorSelection.kind === 'file' && selectedInstanceId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedNodeId(selectedInstanceId)
+                        setInspectorSelection({ kind: 'extensionInstance', groupId: selectedInstanceId })
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      Back to instance
+                    </button>
+                  )}
                 </div>
+              )}
+
+              {(inspectorSelection.kind === 'extensionInstance' || inspectorSelection.kind === 'file') && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Handler explanation</div>
+                  {selectedInstanceHandler ? (
+                    <>
+                      <div className="text-[12px] text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedInstanceHandler.label}</span>
+                        {selectedInstanceBuilder ? ` is built by ${selectedInstanceBuilder.label}` : ''} and executes the core instance behavior for {selectedInstanceNode?.label ?? 'this instance'}.
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono break-all">
+                        {selectedHandlerPath || 'No handler path'}
+                      </div>
+                      <div className="mt-2 rounded border border-slate-200 dark:border-slate-700 p-2 bg-slate-50 dark:bg-slate-900/50">
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Natural language edit request</div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400">{handlerEditPrompt}</div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setLastEditNote(handlerEditPrompt)}
+                          className="text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          Natural language
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScopeMode('code')
+                            if (selectedInstanceId) setExpandedGroupIds((prev) => new Set(prev).add(selectedInstanceId))
+                            setSelectedNodeId(selectedInstanceHandler.id)
+                            setInspectorSelection({ kind: 'file', nodeId: selectedInstanceHandler.id })
+                            setLastEditNote(`Go to IDE: open ${selectedHandlerPath || selectedInstanceHandler.label}.`)
+                          }}
+                          className="text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          Go to IDE
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedInstanceId) setExpandedGroupIds((prev) => new Set(prev).add(selectedInstanceId))
+                            setSelectedNodeId(selectedInstanceHandler.id)
+                            setInspectorSelection({ kind: 'file', nodeId: selectedInstanceHandler.id })
+                            setLastEditNote(`Quick edit ready for ${selectedInstanceHandler.label}.`)
+                          }}
+                          className="text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          Quick Edit
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-[12px] text-slate-500 dark:text-slate-400">No handler file found for this instance.</div>
+                  )}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-950/40">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Collapse behavior</div>
+                  {inspectorSelection.kind === 'empty' && (
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setExpandedGroupIds(new Set())
+                          setLastEditNote('Collapsed all extension instances.')
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Collapse all
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExpandedGroupIds(new Set(groupedNodes.map((group) => group.id)))
+                          setLastEditNote('Expanded all extension instances.')
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Expand all
+                      </button>
+                    </div>
+                  )}
+                  {inspectorSelection.kind === 'extensionType' && (
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setExpandedGroupIds((prev) => {
+                            const next = new Set(prev)
+                            selectedTypeGroupIds.forEach((id) => next.delete(id))
+                            return next
+                          })
+                          setLastEditNote(`Collapsed all instances in ${inspectorSelection.subGraph}.`)
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Collapse type
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExpandedGroupIds((prev) => {
+                            const next = new Set(prev)
+                            selectedTypeGroupIds.forEach((id) => next.add(id))
+                            return next
+                          })
+                          setLastEditNote(`Expanded all instances in ${inspectorSelection.subGraph}.`)
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Expand type
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[12px] text-slate-600 dark:text-slate-400">
+                  {inspectorSelection.kind === 'empty' &&
+                    'Global controls affect all extension instances.'}
+                  {inspectorSelection.kind === 'extensionType' &&
+                    `Type-level controls affect all instances under ${inspectorSelection.subGraph}.`}
+                  {inspectorSelection.kind === 'extensionInstance' &&
+                    `Instance has ${selectedInstanceMembers.length} composing file${selectedInstanceMembers.length === 1 ? '' : 's'}.`}
+                  {inspectorSelection.kind === 'file' &&
+                    (selectedInstanceId
+                      ? 'File-level context inherits from the selected instance.'
+                      : 'File is not associated with an extension instance.')}
+                </p>
+              </div>
 
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
                 <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Connected entities</div>
@@ -1677,6 +1856,7 @@ export function CodeNavigationPage() {
                 </button>
                 <div className="text-[12px] text-slate-600 dark:text-slate-400 mb-2">
                   {connectedEntities.length} connected entit{connectedEntities.length === 1 ? 'y' : 'ies'} in current selection.
+                  {tempRevealNodeIds.length > 0 ? ` (${tempRevealNodeIds.length} temporarily revealed)` : ''}
                 </div>
                 {connectedEntitiesByType.length === 0 && (
                   <div className="text-[12px] text-slate-500 dark:text-slate-400">No connected entities.</div>

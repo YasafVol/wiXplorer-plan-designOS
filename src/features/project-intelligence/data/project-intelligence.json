@@ -1,0 +1,1392 @@
+{
+  "meta": {
+    "projectName": "Meridian Hotels",
+    "projectSlug": "meridian-hotels",
+    "lastHookRun": "2026-02-20T09:14:00Z",
+    "version": "0.2"
+  },
+  "nodes": [
+
+    {
+      "id": "guest-discovery",
+      "type": "level1",
+      "label": "Guest Discovery",
+      "intentSource": "user-edited",
+      "status": "healthy",
+      "lastModified": "2026-02-14T11:20:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": [],
+      "children": ["property-pages", "availability-search", "editorial-content", "venue-discovery"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "booking-flow",
+      "type": "level1",
+      "label": "Booking Flow",
+      "intentSource": "user-edited",
+      "status": "warning",
+      "lastModified": "2026-02-18T14:32:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": [],
+      "children": ["dynamic-pricing", "availability-sync", "checkout-validation", "booking-confirmation"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "loyalty-program",
+      "type": "level1",
+      "label": "Loyalty Program",
+      "intentSource": "user-edited",
+      "status": "healthy",
+      "lastModified": "2026-02-19T10:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": [],
+      "children": ["points-accrual", "tier-management", "member-dashboard"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "staff-operations",
+      "type": "level1",
+      "label": "Staff Operations",
+      "intentSource": "user-edited",
+      "status": "healthy",
+      "lastModified": "2026-02-19T11:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": [],
+      "children": ["arrivals-management", "housekeeping", "venue-crm", "loyalty-admin"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "pms-integration",
+      "type": "level1",
+      "label": "PMS Integration",
+      "intentSource": "user-edited",
+      "status": "warning",
+      "lastModified": "2026-02-19T12:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": [],
+      "children": ["opera-cloud-integration", "siteminder-sync", "reconciliation"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "retail",
+      "type": "level1",
+      "label": "Retail",
+      "intentSource": "user-edited",
+      "status": "healthy",
+      "lastModified": "2026-02-19T13:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": [],
+      "children": ["meridian-store", "shipping", "post-stay"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+
+    {
+      "id": "property-pages",
+      "type": "level2",
+      "label": "Property Pages",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-16T14:10:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["guest-discovery"],
+      "children": ["hotels-router", "hotels-collection", "rooms-collection", "property-context", "seo-function-library"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix CMS", "Wix Multilingual"] }
+    },
+    {
+      "id": "availability-search",
+      "type": "level2",
+      "label": "Availability Search",
+      "intentSource": "reconciled",
+      "status": "warning",
+      "lastModified": "2026-02-15T10:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["guest-discovery"],
+      "children": ["availability-library"],
+      "connections": ["availability-cache"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Bookings"] }
+    },
+    {
+      "id": "editorial-content",
+      "type": "level2",
+      "label": "Editorial Content",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-14T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["guest-discovery"],
+      "children": ["journal-router", "journal-collection"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix CMS", "Wix Multilingual"] }
+    },
+    {
+      "id": "venue-discovery",
+      "type": "level2",
+      "label": "Venue Discovery",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-14T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["guest-discovery"],
+      "children": ["experiences-router", "experiences-collection", "venues-collection"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Bookings", "Wix Forms", "Wix CMS"] }
+    },
+    {
+      "id": "dynamic-pricing",
+      "type": "level2",
+      "label": "Dynamic Pricing",
+      "intentSource": "reconciled",
+      "status": "warning",
+      "lastModified": "2026-02-18T14:32:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["booking-flow"],
+      "children": ["pricing-action", "availability-cache", "pricing-rules", "bookings-pricing-plugin"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Bookings", "Wix eCommerce"] }
+    },
+    {
+      "id": "availability-sync",
+      "type": "level2",
+      "label": "Availability Sync",
+      "intentSource": "reconciled",
+      "status": "warning",
+      "lastModified": "2026-02-20T08:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["booking-flow"],
+      "children": ["availability-sync-job", "availability-push-api"],
+      "connections": ["availability-cache"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": [] }
+    },
+    {
+      "id": "checkout-validation",
+      "type": "level2",
+      "label": "Checkout Validation",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-16T16:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["booking-flow"],
+      "children": ["booking-validator-plugin", "ecom-additional-fees-plugin"],
+      "connections": ["availability-cache", "pricing-rules"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix eCommerce", "Wix Bookings", "Wix Members"] }
+    },
+    {
+      "id": "booking-confirmation",
+      "type": "level2",
+      "label": "Booking Confirmation",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T10:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["booking-flow"],
+      "children": ["on-booking-confirmed-event"],
+      "connections": ["loyalty-ledger"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Bookings", "Wix Members"] }
+    },
+    {
+      "id": "points-accrual",
+      "type": "level2",
+      "label": "Points Accrual",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T14:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["loyalty-program"],
+      "children": ["loyalty-action", "loyalty-ledger", "on-order-approved-event"],
+      "connections": ["pricing-rules"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Members", "Wix Stores", "Wix Bookings"] }
+    },
+    {
+      "id": "tier-management",
+      "type": "level2",
+      "label": "Tier Management",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T15:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["loyalty-program"],
+      "children": ["loyalty-tier-job"],
+      "connections": ["loyalty-ledger", "pricing-rules"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Members"] }
+    },
+    {
+      "id": "member-dashboard",
+      "type": "level2",
+      "label": "Member Dashboard",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-18T10:30:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["loyalty-program"],
+      "children": ["member-context", "loyalty-function-library", "loyalty-admin-page", "points-adjustment-modal", "loyalty-summary-plugin", "loyalty-menu-plugin"],
+      "connections": ["loyalty-ledger", "staff-roles-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Members"] }
+    },
+    {
+      "id": "arrivals-management",
+      "type": "level2",
+      "label": "Arrivals Management",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T09:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["staff-operations"],
+      "children": ["arrivals-action", "staff-auth-action", "staff-arrivals-page", "staff-router"],
+      "connections": ["staff-roles-collection", "room-status-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Members", "Wix Bookings"] }
+    },
+    {
+      "id": "housekeeping",
+      "type": "level2",
+      "label": "Housekeeping",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-16T14:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["staff-operations"],
+      "children": ["housekeeping-page", "room-status-collection", "staff-library"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": [] }
+    },
+    {
+      "id": "venue-crm",
+      "type": "level2",
+      "label": "Venue CRM",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-18T11:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["staff-operations"],
+      "children": ["venue-inquiries-page", "venue-inquiries-collection", "staff-roles-collection", "venue-note-modal", "staff-role-edit-modal"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Forms", "Wix Automations"] }
+    },
+    {
+      "id": "loyalty-admin",
+      "type": "level2",
+      "label": "Loyalty Admin",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-18T10:30:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["staff-operations"],
+      "children": ["booking-enrichment-plugin", "pms-sync-menu-plugin"],
+      "connections": ["loyalty-ledger", "staff-roles-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Members", "Wix Bookings"] }
+    },
+    {
+      "id": "opera-cloud-integration",
+      "type": "level2",
+      "label": "Opera Cloud Integration",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T10:30:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["pms-integration"],
+      "children": ["pms-events-api", "reconciliation-log-collection"],
+      "connections": ["room-status-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": [] }
+    },
+    {
+      "id": "siteminder-sync",
+      "type": "level2",
+      "label": "SiteMinder Sync",
+      "intentSource": "reconciled",
+      "status": "warning",
+      "lastModified": "2026-02-20T08:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["pms-integration"],
+      "children": ["availability-cache", "availability-sync-job", "availability-push-api"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": [] }
+    },
+    {
+      "id": "reconciliation",
+      "type": "level2",
+      "label": "Reconciliation",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T11:30:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["pms-integration"],
+      "children": ["pms-reconciliation-job", "room-status-collection"],
+      "connections": ["reconciliation-log-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": [] }
+    },
+    {
+      "id": "meridian-store",
+      "type": "level2",
+      "label": "Meridian Store",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-19T13:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["retail"],
+      "children": ["site-config-collection"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Stores", "Wix Members"] }
+    },
+    {
+      "id": "shipping",
+      "type": "level2",
+      "label": "Shipping",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-17T12:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["retail"],
+      "children": ["ecom-shipping-plugin"],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix eCommerce", "Wix Stores"] }
+    },
+    {
+      "id": "post-stay",
+      "type": "level2",
+      "label": "Post-Stay",
+      "intentSource": "reconciled",
+      "status": "healthy",
+      "lastModified": "2026-02-19T13:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["retail"],
+      "children": ["on-order-approved-event"],
+      "connections": ["loyalty-ledger"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": { "involvedSolutions": ["Wix Stores", "Wix Members"] }
+    },
+
+    {
+      "id": "hotels-router",
+      "type": "router",
+      "label": "hotels-router",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-15T10:30:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["property-pages"],
+      "children": [],
+      "connections": ["hotels-collection", "rooms-collection", "availability-cache"],
+      "files": [
+        "src/server/routers/hotels-router/hotels-router.ts",
+        "src/server/routers/hotels-router/hotels-router.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": { "urlPattern": "/hotels/[slug]", "authGuard": false }
+    },
+    {
+      "id": "hotels-collection",
+      "type": "collection",
+      "label": "Hotels",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["property-pages"],
+      "children": [],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 14,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "name, slug, region, currency, heroVideoUrl, amenities, sustainabilityCerts, coordinates, accentColorToken"
+      }
+    },
+    {
+      "id": "rooms-collection",
+      "type": "collection",
+      "label": "Rooms",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["property-pages"],
+      "children": [],
+      "connections": ["hotels-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 187,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "type, propertyId, baseRate, capacity, images, features, petFriendly"
+      }
+    },
+    {
+      "id": "property-context",
+      "type": "context",
+      "label": "PropertyContext",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-16T14:10:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["property-pages"],
+      "children": [],
+      "connections": ["hotels-collection", "availability-cache"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "boundElements": ["hero-video", "amenities-repeater", "accent-color-variable", "availability-widget-property-id"],
+        "stateShape": "{ property: Hotel, availabilitySummary: AvailabilitySummary }"
+      }
+    },
+    {
+      "id": "seo-function-library",
+      "type": "function-library",
+      "label": "seo-library",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["property-pages"],
+      "children": [],
+      "connections": ["hotels-collection", "rooms-collection", "experiences-collection", "journal-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "boundElements": ["page-head-hotel", "page-head-experience", "page-head-journal", "page-head-product"]
+      }
+    },
+    {
+      "id": "availability-library",
+      "type": "function-library",
+      "label": "availability-library",
+      "intentSource": "bottom-up",
+      "status": "warning",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["availability-search"],
+      "children": [],
+      "connections": ["availability-cache"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "boundElements": ["calendar-date-cell", "room-repeater-dataset", "earliest-available-date-text"]
+      }
+    },
+    {
+      "id": "journal-router",
+      "type": "router",
+      "label": "journal-router",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["editorial-content"],
+      "children": [],
+      "connections": ["journal-collection", "hotels-collection"],
+      "files": [
+        "src/server/routers/journal-router/journal-router.ts",
+        "src/server/routers/journal-router/journal-router.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": { "urlPattern": "/journal/[slug]", "authGuard": false }
+    },
+    {
+      "id": "journal-collection",
+      "type": "collection",
+      "label": "Journal",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["editorial-content"],
+      "children": [],
+      "connections": ["hotels-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 84,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "title, slug, body, author, publishedAt, heroImage, propertyTags, metaTitle, metaDescription, ogImage"
+      }
+    },
+    {
+      "id": "experiences-router",
+      "type": "router",
+      "label": "experiences-router",
+      "intentSource": "user-edited",
+      "status": "healthy",
+      "lastModified": "2026-02-17T09:45:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["venue-discovery"],
+      "children": [],
+      "connections": ["experiences-collection", "venues-collection", "hotels-collection"],
+      "files": [
+        "src/server/routers/experiences-router/experiences-router.ts",
+        "src/server/routers/experiences-router/experiences-router.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": { "urlPattern": "/experiences/[slug], /venues/[slug]", "authGuard": false }
+    },
+    {
+      "id": "experiences-collection",
+      "type": "collection",
+      "label": "Experiences",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["venue-discovery"],
+      "children": [],
+      "connections": ["hotels-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 62,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "name, slug, propertyId, description, images, duration, bookingsServiceId"
+      }
+    },
+    {
+      "id": "venues-collection",
+      "type": "collection",
+      "label": "Venues",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["venue-discovery"],
+      "children": [],
+      "connections": ["hotels-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 38,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "name, slug, propertyId, capacity, layouts, cateringAvailable, images, description"
+      }
+    },
+
+    {
+      "id": "pricing-action",
+      "type": "action",
+      "label": "pricingAction",
+      "intentSource": "top-down",
+      "status": "warning",
+      "lastModified": "2026-02-15T10:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["dynamic-pricing"],
+      "children": [],
+      "connections": ["availability-cache", "pricing-rules"],
+      "files": [
+        "src/server/actions/pricingAction/pricingAction.ts",
+        "src/server/actions/pricingAction/pricingAction.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "calledFrom": ["/hotels/[slug] pricing widget", "/booking/search results"],
+        "returnType": "PriceBreakdown"
+      }
+    },
+    {
+      "id": "availability-cache",
+      "type": "collection",
+      "label": "AvailabilityCache",
+      "intentSource": "bottom-up",
+      "status": "warning",
+      "lastModified": "2026-02-20T08:51:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["dynamic-pricing", "siteminder-sync"],
+      "children": [],
+      "connections": ["availability-sync-job", "pricing-action", "bookings-pricing-plugin", "booking-validator-plugin", "availability-library"],
+      "files": [],
+      "isMultiParent": true,
+      "metadata": {
+        "rowCount": 1847,
+        "lastSync": "2026-02-20T08:51:00Z",
+        "syncStatus": "warning",
+        "syncWarningReason": "Last sync was 14 minutes ago. Warning threshold is 6 minutes.",
+        "schemaSummary": "propertyId, roomType, date, availableCount, priceBase, lastUpdated"
+      }
+    },
+    {
+      "id": "pricing-rules",
+      "type": "collection",
+      "label": "PricingRules",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-16T15:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["dynamic-pricing"],
+      "children": [],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 143,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "propertyScope, dateRange, occupancyBand, multiplier, tierDiscounts, promotionLabel"
+      }
+    },
+    {
+      "id": "bookings-pricing-plugin",
+      "type": "service-plugin",
+      "label": "bookings-pricing",
+      "intentSource": "top-down",
+      "status": "warning",
+      "lastModified": "2026-02-18T09:30:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["dynamic-pricing"],
+      "children": [],
+      "connections": ["availability-cache", "pricing-rules"],
+      "files": [
+        "src/server/service-plugins/bookings-pricing/bookings-pricing.ts",
+        "src/server/service-plugins/bookings-pricing/bookings-pricing.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "pluginType": "Bookings Pricing",
+        "wixSolution": "Wix Bookings",
+        "triggerPoint": "calculatePrice() — called on every date selection in the Bookings checkout flow"
+      }
+    },
+    {
+      "id": "availability-sync-job",
+      "type": "job",
+      "label": "availability-sync",
+      "intentSource": "top-down",
+      "status": "warning",
+      "lastModified": "2026-02-20T08:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["availability-sync", "siteminder-sync"],
+      "children": [],
+      "connections": ["availability-cache", "site-config-collection"],
+      "files": [
+        "src/server/jobs/availability-sync/availability-sync.ts",
+        "src/server/jobs/availability-sync/availability-sync.extension.ts"
+      ],
+      "isMultiParent": true,
+      "metadata": {
+        "schedule": "*/5 * * * *",
+        "lastRun": "2026-02-20T09:10:00Z",
+        "lastRunStatus": "error",
+        "nextRun": "2026-02-20T09:15:00Z"
+      }
+    },
+    {
+      "id": "availability-push-api",
+      "type": "api",
+      "label": "availability-push",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["availability-sync", "siteminder-sync"],
+      "children": [],
+      "connections": ["availability-cache"],
+      "files": [
+        "src/server/api/availability-push/availability-push.ts",
+        "src/server/api/availability-push/availability-push.extension.ts"
+      ],
+      "isMultiParent": true,
+      "metadata": {
+        "method": "POST",
+        "path": "/api/availability-push",
+        "calledBy": ["SiteMinder channel manager"]
+      }
+    },
+    {
+      "id": "booking-validator-plugin",
+      "type": "service-plugin",
+      "label": "ecom-validations",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-16T16:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["checkout-validation"],
+      "children": [],
+      "connections": ["availability-cache", "pricing-rules"],
+      "files": [
+        "src/server/service-plugins/ecom-validations/ecom-validations.ts",
+        "src/server/service-plugins/ecom-validations/ecom-validations.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "pluginType": "eCommerce Validations",
+        "wixSolution": "Wix eCommerce",
+        "triggerPoint": "getValidationViolations() — called before checkout completes"
+      }
+    },
+    {
+      "id": "ecom-additional-fees-plugin",
+      "type": "service-plugin",
+      "label": "ecom-additional-fees",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["checkout-validation"],
+      "children": [],
+      "connections": ["hotels-collection"],
+      "files": [
+        "src/server/service-plugins/ecom-additional-fees/ecom-additional-fees.ts",
+        "src/server/service-plugins/ecom-additional-fees/ecom-additional-fees.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "pluginType": "eCommerce Additional Fees",
+        "wixSolution": "Wix eCommerce",
+        "triggerPoint": "calculateAdditionalFees() — called on every cart and checkout update"
+      }
+    },
+    {
+      "id": "on-booking-confirmed-event",
+      "type": "event",
+      "label": "onBookingConfirmed",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T10:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["booking-confirmation"],
+      "children": [],
+      "connections": ["loyalty-ledger", "pricing-rules"],
+      "files": [
+        "src/server/events/onBookingConfirmed/onBookingConfirmed.ts",
+        "src/server/events/onBookingConfirmed/onBookingConfirmed.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+
+    {
+      "id": "loyalty-action",
+      "type": "action",
+      "label": "loyaltyAction",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T14:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["points-accrual"],
+      "children": [],
+      "connections": ["loyalty-ledger", "pricing-rules"],
+      "files": [
+        "src/server/actions/loyaltyAction/loyaltyAction.ts",
+        "src/server/actions/loyaltyAction/loyaltyAction.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "calledFrom": ["/account/dashboard on load", "/booking/confirm post-booking", "loyalty-admin-page member lookup"],
+        "returnType": "LoyaltyState"
+      }
+    },
+    {
+      "id": "loyalty-ledger",
+      "type": "collection",
+      "label": "LoyaltyLedger",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-18T09:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["points-accrual", "tier-management"],
+      "children": [],
+      "connections": [],
+      "files": [],
+      "isMultiParent": true,
+      "metadata": {
+        "rowCount": 24391,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "memberId, eventType, pointsDelta, bookingRef, orderRef, staffActorId, timestamp"
+      }
+    },
+    {
+      "id": "on-order-approved-event",
+      "type": "event",
+      "label": "onOrderApproved",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["points-accrual", "post-stay"],
+      "children": [],
+      "connections": ["loyalty-ledger"],
+      "files": [
+        "src/server/events/onOrderApproved/onOrderApproved.ts",
+        "src/server/events/onOrderApproved/onOrderApproved.extension.ts"
+      ],
+      "isMultiParent": true,
+      "metadata": {}
+    },
+    {
+      "id": "loyalty-tier-job",
+      "type": "job",
+      "label": "loyalty-tier-recalculation",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T15:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["tier-management"],
+      "children": [],
+      "connections": ["loyalty-ledger", "pricing-rules"],
+      "files": [
+        "src/server/jobs/loyalty-tier-recalculation/loyalty-tier-recalculation.ts",
+        "src/server/jobs/loyalty-tier-recalculation/loyalty-tier-recalculation.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "schedule": "0 2 * * *",
+        "lastRun": "2026-02-20T02:00:00Z",
+        "lastRunStatus": "success",
+        "nextRun": "2026-02-21T02:00:00Z"
+      }
+    },
+    {
+      "id": "member-context",
+      "type": "context",
+      "label": "MemberContext",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-16T11:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["member-dashboard"],
+      "children": [],
+      "connections": ["loyalty-ledger"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "boundElements": ["greeting-text", "tier-badge", "points-progress-bar", "room-recommendations-repeater-filter"],
+        "stateShape": "{ member: Member, tier: Tier, pointsBalance: number, pointsProgress: number, preferences: MemberPreferences }"
+      }
+    },
+    {
+      "id": "loyalty-function-library",
+      "type": "function-library",
+      "label": "loyalty-library",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["member-dashboard"],
+      "children": [],
+      "connections": ["loyalty-ledger"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "boundElements": ["tier-badge-text", "progress-bar-fill", "points-to-next-tier-text"]
+      }
+    },
+    {
+      "id": "loyalty-admin-page",
+      "type": "dashboard-page",
+      "label": "LoyaltyAdminPage",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["member-dashboard"],
+      "children": [],
+      "connections": ["loyalty-ledger", "staff-roles-collection"],
+      "files": [
+        "src/client/dashboard/pages/loyalty-admin/loyalty-admin.tsx",
+        "src/client/dashboard/pages/loyalty-admin/loyalty-admin.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "route": "loyalty-admin",
+        "visibleToRoles": ["manager", "admin"]
+      }
+    },
+    {
+      "id": "points-adjustment-modal",
+      "type": "dashboard-modal",
+      "label": "PointsAdjustmentModal",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-18T10:30:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["member-dashboard"],
+      "children": [],
+      "connections": ["loyalty-ledger"],
+      "files": [
+        "src/client/dashboard/modals/points-adjustment/points-adjustment.tsx",
+        "src/client/dashboard/modals/points-adjustment/points-adjustment.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "loyalty-summary-plugin",
+      "type": "dashboard-plugin",
+      "label": "LoyaltySummaryPlugin",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["member-dashboard"],
+      "children": [],
+      "connections": ["loyalty-ledger"],
+      "files": [
+        "src/client/dashboard/plugins/loyalty-summary/loyalty-summary.tsx",
+        "src/client/dashboard/plugins/loyalty-summary/loyalty-summary.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "loyalty-menu-plugin",
+      "type": "menu-plugin",
+      "label": "LoyaltyMenuPlugin",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["member-dashboard"],
+      "children": [],
+      "connections": ["staff-roles-collection"],
+      "files": [
+        "src/client/dashboard/menu-plugins/loyalty-menu/loyalty-menu.tsx",
+        "src/client/dashboard/menu-plugins/loyalty-menu/loyalty-menu.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+
+    {
+      "id": "arrivals-action",
+      "type": "action",
+      "label": "arrivalsAction",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T09:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["arrivals-management"],
+      "children": [],
+      "connections": ["staff-roles-collection"],
+      "files": [
+        "src/server/actions/arrivalsAction/arrivalsAction.ts",
+        "src/server/actions/arrivalsAction/arrivalsAction.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "calledFrom": ["/staff/arrivals on load", "/staff/arrivals every 30s poll"],
+        "returnType": "EnrichedArrival[]"
+      }
+    },
+    {
+      "id": "staff-auth-action",
+      "type": "action",
+      "label": "staffAuthAction",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-16T14:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["arrivals-management"],
+      "children": [],
+      "connections": ["staff-roles-collection"],
+      "files": [
+        "src/server/actions/staffAuthAction/staffAuthAction.ts",
+        "src/server/actions/staffAuthAction/staffAuthAction.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "calledFrom": ["staff-router", "arrivals-action", "housekeeping-page", "venue-inquiries-page", "loyalty-admin-page"],
+        "returnType": "StaffSession"
+      }
+    },
+    {
+      "id": "staff-router",
+      "type": "router",
+      "label": "staff-router",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-15T16:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["arrivals-management"],
+      "children": [],
+      "connections": ["staff-roles-collection"],
+      "files": [
+        "src/server/routers/staff-router/staff-router.ts",
+        "src/server/routers/staff-router/staff-router.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": { "urlPattern": "/staff/*", "authGuard": true }
+    },
+    {
+      "id": "staff-arrivals-page",
+      "type": "dashboard-page",
+      "label": "StaffArrivalsPage",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["arrivals-management"],
+      "children": [],
+      "connections": ["arrivals-action", "room-status-collection"],
+      "files": [
+        "src/client/dashboard/pages/staff-arrivals/staff-arrivals.tsx",
+        "src/client/dashboard/pages/staff-arrivals/staff-arrivals.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "route": "staff/arrivals",
+        "visibleToRoles": ["frontdesk", "manager", "admin"]
+      }
+    },
+    {
+      "id": "housekeeping-page",
+      "type": "dashboard-page",
+      "label": "HousekeepingPage",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["housekeeping"],
+      "children": [],
+      "connections": ["room-status-collection"],
+      "files": [
+        "src/client/dashboard/pages/housekeeping/housekeeping.tsx",
+        "src/client/dashboard/pages/housekeeping/housekeeping.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "route": "staff/housekeeping",
+        "visibleToRoles": ["housekeeping", "manager", "admin"]
+      }
+    },
+    {
+      "id": "room-status-collection",
+      "type": "collection",
+      "label": "RoomStatus",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-20T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["housekeeping", "reconciliation"],
+      "children": [],
+      "connections": ["pms-events-api", "pms-reconciliation-job"],
+      "files": [],
+      "isMultiParent": true,
+      "metadata": {
+        "rowCount": 412,
+        "lastSync": "2026-02-20T09:12:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "propertyId, roomNumber, status, lastChangedAt, lastChangedBy"
+      }
+    },
+    {
+      "id": "staff-library",
+      "type": "function-library",
+      "label": "staff-library",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["housekeeping"],
+      "children": [],
+      "connections": ["room-status-collection", "venue-inquiries-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "boundElements": ["room-status-cell-color", "arrival-time-display", "inquiry-status-badge"]
+      }
+    },
+    {
+      "id": "venue-inquiries-page",
+      "type": "dashboard-page",
+      "label": "VenueInquiriesPage",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["venue-crm"],
+      "children": [],
+      "connections": ["venue-inquiries-collection", "staff-roles-collection"],
+      "files": [
+        "src/client/dashboard/pages/venue-inquiries/venue-inquiries.tsx",
+        "src/client/dashboard/pages/venue-inquiries/venue-inquiries.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "route": "staff/venue-inquiries",
+        "visibleToRoles": ["sales", "manager", "admin"]
+      }
+    },
+    {
+      "id": "venue-inquiries-collection",
+      "type": "collection",
+      "label": "VenueInquiries",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-18T11:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["venue-crm"],
+      "children": [],
+      "connections": ["staff-roles-collection"],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 217,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "clientName, email, eventType, preferredDate, guestCount, catering, assignedStaff, crmStatus, contactHistory, nextFollowUp"
+      }
+    },
+    {
+      "id": "staff-roles-collection",
+      "type": "collection",
+      "label": "StaffRoles",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-16T15:30:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["venue-crm"],
+      "children": [],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 43,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "memberEmail, role, propertyScope"
+      }
+    },
+    {
+      "id": "venue-note-modal",
+      "type": "dashboard-modal",
+      "label": "VenueNoteModal",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["venue-crm"],
+      "children": [],
+      "connections": ["venue-inquiries-collection"],
+      "files": [
+        "src/client/dashboard/modals/venue-note/venue-note.tsx",
+        "src/client/dashboard/modals/venue-note/venue-note.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "staff-role-edit-modal",
+      "type": "dashboard-modal",
+      "label": "StaffRoleEditModal",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T16:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["venue-crm"],
+      "children": [],
+      "connections": ["staff-roles-collection"],
+      "files": [
+        "src/client/dashboard/modals/staff-role-edit/staff-role-edit.tsx",
+        "src/client/dashboard/modals/staff-role-edit/staff-role-edit.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "booking-enrichment-plugin",
+      "type": "dashboard-plugin",
+      "label": "BookingEnrichmentPlugin",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["loyalty-admin"],
+      "children": [],
+      "connections": ["room-status-collection"],
+      "files": [
+        "src/client/dashboard/plugins/booking-enrichment/booking-enrichment.tsx",
+        "src/client/dashboard/plugins/booking-enrichment/booking-enrichment.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+    {
+      "id": "pms-sync-menu-plugin",
+      "type": "menu-plugin",
+      "label": "PMSSyncMenuPlugin",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-10T09:00:00Z",
+      "lastModifiedBy": "hook",
+      "parentIds": ["loyalty-admin"],
+      "children": [],
+      "connections": ["reconciliation-log-collection"],
+      "files": [
+        "src/client/dashboard/menu-plugins/pms-sync/pms-sync.tsx",
+        "src/client/dashboard/menu-plugins/pms-sync/pms-sync.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {}
+    },
+
+    {
+      "id": "pms-events-api",
+      "type": "api",
+      "label": "pms-events",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T10:30:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["opera-cloud-integration"],
+      "children": [],
+      "connections": ["room-status-collection", "loyalty-ledger"],
+      "files": [
+        "src/server/api/pms-events/pms-events.ts",
+        "src/server/api/pms-events/pms-events.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "method": "POST",
+        "path": "/api/pms-events",
+        "calledBy": ["Opera Cloud PMS"]
+      }
+    },
+    {
+      "id": "reconciliation-log-collection",
+      "type": "collection",
+      "label": "ReconciliationLog",
+      "intentSource": "bottom-up",
+      "status": "healthy",
+      "lastModified": "2026-02-18T14:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["opera-cloud-integration"],
+      "children": [],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 1204,
+        "lastSync": "2026-02-20T09:00:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "propertyId, roomNumber, operaStatus, wixStatus, discrepancyAt, resolution, flaggedForReview"
+      }
+    },
+    {
+      "id": "pms-reconciliation-job",
+      "type": "job",
+      "label": "pms-reconciliation",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T11:30:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["reconciliation"],
+      "children": [],
+      "connections": ["room-status-collection", "reconciliation-log-collection"],
+      "files": [
+        "src/server/jobs/pms-reconciliation/pms-reconciliation.ts",
+        "src/server/jobs/pms-reconciliation/pms-reconciliation.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "schedule": "0 * * * *",
+        "lastRun": "2026-02-20T09:00:00Z",
+        "lastRunStatus": "success",
+        "nextRun": "2026-02-20T10:00:00Z"
+      }
+    },
+
+    {
+      "id": "site-config-collection",
+      "type": "collection",
+      "label": "SiteConfig",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-18T15:00:00Z",
+      "lastModifiedBy": "yasaf@wix.com",
+      "parentIds": ["meridian-store"],
+      "children": [],
+      "connections": [],
+      "files": [],
+      "isMultiParent": false,
+      "metadata": {
+        "rowCount": 1,
+        "lastSync": "2026-02-20T09:10:00Z",
+        "syncStatus": "healthy",
+        "schemaSummary": "featureFlags, maintenanceMode, loyaltyTierThresholds, siteminderSyncInterval, propertyCurrencies"
+      }
+    },
+    {
+      "id": "ecom-shipping-plugin",
+      "type": "service-plugin",
+      "label": "ecom-shipping-rates",
+      "intentSource": "top-down",
+      "status": "healthy",
+      "lastModified": "2026-02-17T12:00:00Z",
+      "lastModifiedBy": "dev@wix.com",
+      "parentIds": ["shipping"],
+      "children": [],
+      "connections": [],
+      "files": [
+        "src/server/service-plugins/ecom-shipping-rates/ecom-shipping-rates.ts",
+        "src/server/service-plugins/ecom-shipping-rates/ecom-shipping-rates.extension.ts"
+      ],
+      "isMultiParent": false,
+      "metadata": {
+        "pluginType": "eCommerce Shipping Rates",
+        "wixSolution": "Wix eCommerce",
+        "triggerPoint": "getShippingRates() — called at cart and checkout when delivery address is entered"
+      }
+    }
+
+  ]
+}

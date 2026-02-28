@@ -1,0 +1,18 @@
+---
+description: Enforce recording design and product decisions in canonical docs
+alwaysApply: true
+---
+
+# Decision Documentation Enforcement
+
+Whenever a design or product decision is introduced, changed, or finalized, update `docs/code-first-nav-and-graph-views.md` in the same session.
+
+For each decision, document:
+- what changed,
+- why it was chosen,
+- impacted areas/files,
+- follow-ups or open questions.
+
+This rule applies to:
+- Design OS application decisions (`src/`),
+- product planning/export decisions (`product/`, `product-plan/`).

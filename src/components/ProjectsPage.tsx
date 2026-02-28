@@ -1,10 +1,14 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Globe, Layers, GitBranch, Link2, Table2 } from 'lucide-react'
+import { ArrowRight, BrainCircuit, Globe, Layers, GitBranch, Link2, Table2 } from 'lucide-react'
 import { PROJECTS } from '@/projects'
 import type { ProjectMeta } from '@/projects'
 
 function isCodeProject(project: ProjectMeta): boolean {
   return project.name.startsWith('Code:')
+}
+
+function hasProjectIntelligenceView(project: ProjectMeta): boolean {
+  return project.id === 'intent-meridian-hotel'
 }
 
 function formatExtensionType(kind: string): string {
@@ -18,6 +22,7 @@ function formatExtensionType(kind: string): string {
 function ProjectCard({ project }: { project: ProjectMeta }) {
   const navigate = useNavigate()
   const codeProject = isCodeProject(project)
+  const intelligenceProject = hasProjectIntelligenceView(project)
   const codeNodes = codeProject
     ? ((project.data?.nodes as Array<{ type?: string; meta?: { kind?: string } }> | undefined) ?? []).filter(
         (node) => node.type === 'code'
@@ -128,9 +133,20 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-sm font-semibold hover:bg-stone-700 dark:hover:bg-white transition-colors"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
-          Open in graph
+          Graph view
           <ArrowRight className="w-4 h-4" />
         </button>
+        {intelligenceProject && (
+          <button
+            onClick={() => navigate(`/projects/${project.id}/project-intelligence`)}
+            title="Open project intelligence view"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-sm font-semibold hover:bg-sky-50 dark:hover:bg-sky-950/30 transition-colors"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            <BrainCircuit className="w-4 h-4" />
+            Project Intelligence View
+          </button>
+        )}
         {codeProject && (
           <button
             onClick={() => navigate(`/projects/${project.id}/code-navigation`)}
@@ -141,7 +157,7 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
             Code navigation
           </button>
         )}
-        {!codeProject && (
+        {!codeProject && !intelligenceProject && (
           <button
             onClick={() => navigate(`/projects/${project.id}/inventory`)}
             title="Open inventory table"

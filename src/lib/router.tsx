@@ -11,11 +11,17 @@ import { ProjectsPage } from '@/components/ProjectsPage'
 import { ProjectGraphPage } from '@/components/ProjectGraphPage'
 import { ProjectInventoryPage } from '@/components/ProjectInventoryPage'
 import { CodeNavigationPage } from '@/components/CodeNavigationPage'
+import { ProjectIntelligencePage } from '@/components/ProjectIntelligencePage'
+import { ProjectIntelligenceSettingsPage } from '@/components/ProjectIntelligenceSettingsPage'
 
-export const router = createBrowserRouter([
+const routes = [
   // wiXplorer — main app
   {
     path: '/',
+    element: <ProjectsPage />,
+  },
+  {
+    path: '/projects',
     element: <ProjectsPage />,
   },
   {
@@ -29,6 +35,14 @@ export const router = createBrowserRouter([
   {
     path: '/projects/:projectId/code-navigation',
     element: <CodeNavigationPage />,
+  },
+  {
+    path: '/projects/:projectId/project-intelligence',
+    element: <ProjectIntelligencePage />,
+  },
+  {
+    path: '/projects/:projectId/project-intelligence/settings',
+    element: <ProjectIntelligenceSettingsPage />,
   },
   // Design OS — planning tool
   {
@@ -71,4 +85,6 @@ export const router = createBrowserRouter([
     path: '/design-os/export',
     element: <ExportPage />,
   },
-])
+]
+
+export const router = createBrowserRouter(routes)

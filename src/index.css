@@ -61,6 +61,29 @@
 */
 :root {
   --radius: 0.5rem;
+  /* Project Intelligence mock theme tokens */
+  --pi-color-bg: #f8f9fa;
+  --pi-color-surface: #ffffff;
+  --pi-color-border: #e2e8f0;
+  --pi-color-header-bg: #0f3460;
+  --pi-color-header-text: #ffffff;
+  --pi-color-level1: #1a56a0;
+  --pi-color-level2: #2e7d32;
+  --pi-color-server: #6b3fa0;
+  --pi-color-dashboard: #c05621;
+  --pi-color-site: #0e7490;
+  --pi-color-data: #b45309;
+  --pi-color-healthy: #16a34a;
+  --pi-color-warning: #d97706;
+  --pi-color-error: #dc2626;
+  --pi-color-unknown: #9ca3af;
+  --pi-color-text-primary: #111827;
+  --pi-color-text-secondary: #6b7280;
+  --pi-color-text-muted: #9ca3af;
+  --pi-color-inspector-bg: #ffffff;
+  --pi-color-inspector-border: #e2e8f0;
+  --pi-color-action-bg: #f3f4f6;
+  --pi-color-action-hover: #e5e7eb;
   /* Backgrounds & Foregrounds - Stone palette for warmth */
   --background: oklch(0.985 0.001 106.424); /* stone-50 #FAFAF9 */
   --foreground: oklch(0.216 0.006 56.043); /* stone-900 #1C1917 */
@@ -107,6 +130,18 @@
   Dark theme - Warm Stone dark palette
 */
 .dark {
+  --pi-color-bg: #0c0a09;
+  --pi-color-surface: #1c1917;
+  --pi-color-border: #44403c;
+  --pi-color-header-bg: #08253f;
+  --pi-color-header-text: #f5f5f4;
+  --pi-color-text-primary: #f5f5f4;
+  --pi-color-text-secondary: #d6d3d1;
+  --pi-color-text-muted: #a8a29e;
+  --pi-color-inspector-bg: #1c1917;
+  --pi-color-inspector-border: #44403c;
+  --pi-color-action-bg: #292524;
+  --pi-color-action-hover: #3f3f46;
   /* Backgrounds & Foregrounds - Stone dark */
   --background: oklch(0.216 0.006 56.043); /* stone-900 #1C1917 */
   --foreground: oklch(0.985 0.001 106.424); /* stone-50 */

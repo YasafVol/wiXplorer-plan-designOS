@@ -1,6 +1,5 @@
 import smallData from '@/../product/sections/project-graph/data.json'
 import largeData from '@/../product/sections/project-graph/data.large.json'
-import mainCodeData from '@/../product/sections/project-graph/data.main-code.json'
 import codeLargeComplicatedData from '@/../product/sections/project-graph/data.code-large-complicated.json'
 
 export interface ProjectMeta {
@@ -485,6 +484,19 @@ const CODE_CLIENT_SERVER_GRAPH = {
   ],
 }
 
+const INTENT_MERIDIAN_HOTEL_GRAPH = {
+  ...EMPTY_CODE_GRAPH,
+  project: {
+    ...EMPTY_CODE_GRAPH.project,
+    id: 'intent-meridian-hotel-project',
+    label: 'Intent: Meridian hotel',
+    meta: {
+      ...EMPTY_CODE_GRAPH.project.meta,
+      domain: 'intent-meridian-hotel.local',
+    },
+  },
+}
+
 export const PROJECTS: ProjectMeta[] = [
   {
     id: 'small',
@@ -507,15 +519,14 @@ export const PROJECTS: ProjectMeta[] = [
     data: largeData,
   },
   {
-    id: 'main-code',
-    name: 'Code: Single Extension',
-    description:
-      'Code-first POC for Wix CLI extensions with a scheduled job group, explode/unpack behavior, and editable job inspector.',
-    domain: (mainCodeData.project as { meta: { domain: string } }).meta.domain,
-    pageCount: mainCodeData.nodes.filter((n) => n.type === 'page').length,
-    nodeCount: mainCodeData.nodes.length + 1,
-    edgeCount: mainCodeData.edges.length,
-    data: mainCodeData,
+    id: 'intent-meridian-hotel',
+    name: 'Intent: Meridian hotel',
+    description: 'Intent placeholder project for Meridian hotel.',
+    domain: 'intent-meridian-hotel.local',
+    pageCount: INTENT_MERIDIAN_HOTEL_GRAPH.nodes.filter((n) => n.type === 'page').length,
+    nodeCount: INTENT_MERIDIAN_HOTEL_GRAPH.nodes.length + 1,
+    edgeCount: INTENT_MERIDIAN_HOTEL_GRAPH.edges.length,
+    data: INTENT_MERIDIAN_HOTEL_GRAPH,
   },
   {
     id: 'code-client-server',

@@ -306,7 +306,6 @@ Clustered extension should use cluster visual language (cluster card), not regul
 - `src/sections/project-graph/components/ClusterNodeCard.tsx`
 - `src/sections/project-graph/components/GraphNode.tsx`
 - `src/sections/project-graph/components/clusterUtils.ts`
-- `product/sections/project-graph/data.main-code.json`
 
 ### Projection strategy summary
 
@@ -326,7 +325,6 @@ Clustered extension should use cluster visual language (cluster card), not regul
 ### Project picker
 
 - Code projects show `Extension types` + `Extensions`.
-- `Code: Single Extension` displays `Scheduled jobs` and `1`.
 - Code projects expose no Inventory action.
 
 ### Routing and access
@@ -352,6 +350,125 @@ Clustered extension should use cluster visual language (cluster card), not regul
 - Unpacked extension files render inside an extension-specific inner container (not loose under the parent).
 - Inspector empty state resolves to project-level selection (project name, project controls, project data).
 - Inspector selection level always drives panel title, collapse behavior, metadata scope, and connected-entities scope.
+
+### Project Intelligence inspector draft workflow
+
+When users edit configuration or file-level content from Project Intelligence inspector, edits are staged as pending changes and require publish.
+
+- **Draft-first edits**
+  - configuration quick edits and file quick edits are recorded as pending changes
+  - pending changes include node, section, field, before/after value, timestamp, and source (`inline-quick-edit` or `modal-quick-edit`)
+- **Publish-required state**
+  - top shell header shows a persistent `Publish required` state with pending change count whenever draft changes exist
+  - header actions:
+    - `View changes` opens pending-change review
+    - `Publish` clears staged draft changes in phase 1 (publish backend wiring is a future phase)
+- **Review-before-publish**
+  - pending-change review is a modal list with before/after values
+  - users can:
+    - jump to changed node
+    - revert individual changes
+- **Two quick-edit patterns**
+  - top/configuration section: tiny inline editor inside inspector row (`quick edit`, `save`, `cancel`)
+  - bottom/files section: modal editor over graph for file-level quick edits
+- **Connection row behavior**
+  - connections are structured, full-row hyperlink-style targets
+  - entity name is visibly linked
+  - rows are keyboard accessible with focus-ring affordances
+
+Relevant files:
+
+- `src/features/project-intelligence/components/AppShell.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorPanel.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorLevel3.tsx`
+- `src/features/project-intelligence/components/inspector/FileList.tsx`
+- `src/features/project-intelligence/components/inspector/ConnectionList.tsx`
+- `src/features/project-intelligence/components/inspector/PendingChangesReviewModal.tsx`
+- `src/features/project-intelligence/components/inspector/FileQuickEditModal.tsx`
+- `src/features/project-intelligence/types.ts`
+
+### Project Intelligence graph mode decisions
+
+- **Top-level mode toggle**
+  - Project Intelligence header exposes `ICICLE` and `TREE` modes.
+  - Mode is session-only and defaults to `ICICLE` on reload (no persistence to URL/localStorage).
+- **TREE interaction model**
+  - TREE is fully collapsible.
+  - Initial TREE state is closed for nodes that have children.
+  - Node selection remains inspector-driven in TREE the same way as ICICLE.
+- **Shared-node projection policy**
+  - TREE uses canonical single-parent projection for multi-parent graphs to prevent duplicate rendered nodes.
+  - Shared nodes are explicitly marked with shared metadata (`Shared xN`).
+- **Root connectivity policy**
+  - TREE prepends a synthetic root hub to anchor top-level intent branches.
+  - Hub is visual-only and not a selectable inspector entity.
+  - Root hub title text is intentionally omitted.
+- **TREE appearance policy**
+  - Supported variants: `soft-card`, `balanced-default`, `focus-mode`.
+  - Default TREE variant is `focus-mode`.
+  - Vertical depth rails are not used.
+
+Relevant files:
+
+- `src/features/project-intelligence/components/AppShell.tsx`
+- `src/features/project-intelligence/components/tree/TreeChart.tsx`
+- `src/features/project-intelligence/components/tree/TreeNode.tsx`
+- `src/features/project-intelligence/lib/displayTree.ts`
+
+### Project Intelligence inspector visual and ergonomics decisions
+
+- **Header structure**
+  - Inspector level-3 header uses icon + title + subtle type subtitle row.
+  - Redundant top type pill and duplicate standalone title are removed.
+- **Status strip**
+  - `Status` and `Intent source` render on one compact line.
+- **Description affordance**
+  - Description remains editable with explicit visible edit affordance.
+- **Card grouping**
+  - `Configuration`, `Connections`, and `Files` each render in separate bordered cards.
+  - `Last modified` is grouped inside the `Files` card footer.
+- **Connections behavior**
+  - Connection rows stay hyperlink-like and keyboard accessible.
+  - Secondary "Jump to connected entity" helper text is removed.
+  - Collection connections expose a collapsible `View schema` quick action.
+- **Files behavior**
+  - Path is shown once in the files section header area.
+  - Per-file rows show basename only (not full path duplication).
+- **Inspector chrome ergonomics**
+  - Inspector pane is horizontally resizable with maximum width capped at `33%`.
+  - Inspector pane is vertically scrollable when content exceeds viewport.
+  - Bottom-most inspector action bar omits redundant `Open in IDE` action.
+
+Relevant files:
+
+- `src/features/project-intelligence/components/AppShell.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorLevel3.tsx`
+- `src/features/project-intelligence/components/inspector/FileList.tsx`
+- `src/features/project-intelligence/components/inspector/ConnectionList.tsx`
+
+### Product baseline decisions reflected here (repo-wide anchors)
+
+This document remains the canonical decision log for navigation/graph/inspector behavior.  
+Broader product decisions are also represented here as baseline anchors and sourced from:
+
+- `product/product-overview.md` (product problems/solutions and key features)
+- `product/product-roadmap.md` (section prioritization and sequence)
+- `product/data-shape/data-shape.md` (entity vocabulary and relationships)
+- `product/shell/spec.md` (navigation shell and responsive layout decisions)
+- `product/sections/project-graph/spec.md` (graph interaction, inspector, and clustering decisions)
+
+## Decision Coverage Ledger
+
+| Decision area | Status | Source of truth |
+| --- | --- | --- |
+| Code-first navigation and graph behavior | covered | `docs/code-first-nav-and-graph-views.md` |
+| Project Intelligence draft/publish workflow | covered | `src/features/project-intelligence/components/AppShell.tsx`, `src/features/project-intelligence/components/inspector/*`, `src/features/project-intelligence/types.ts` |
+| Project Intelligence TREE mode (toggle, canonical projection, root hub, variants) | expanded | `src/features/project-intelligence/components/tree/*`, `src/features/project-intelligence/lib/displayTree.ts`, `src/features/project-intelligence/components/AppShell.tsx` |
+| Project Intelligence inspector visual layout and ergonomics | newly-added | `src/features/project-intelligence/components/inspector/*`, `src/features/project-intelligence/components/AppShell.tsx` |
+| Product overview and roadmap anchors | newly-added | `product/product-overview.md`, `product/product-roadmap.md` |
+| Data shape anchors | newly-added | `product/data-shape/data-shape.md` |
+| Shell behavior anchors | newly-added | `product/shell/spec.md` |
+| Project graph section spec anchors | newly-added | `product/sections/project-graph/spec.md` |
 
 ---
 
