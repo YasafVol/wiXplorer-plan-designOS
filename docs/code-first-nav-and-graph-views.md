@@ -390,12 +390,35 @@ Relevant files:
 ### Project Intelligence graph mode decisions
 
 - **Top-level mode toggle**
-  - Project Intelligence header exposes `ICICLE` and `TREE` modes.
-  - Mode is session-only and defaults to `ICICLE` on reload (no persistence to URL/localStorage).
+  - Project Intelligence header exposes `TREE`, `ZOOMABLE CIRCLE PACKING`, and `ICICLE` modes.
+  - Mode is session-only and defaults to `TREE` on reload (no persistence to URL/localStorage).
+- **Mode ordering policy**
+  - The mode order is intentional: `TREE` first for top-down hierarchy scanning, `ZOOMABLE CIRCLE PACKING` second for dense hierarchy exploration, `ICICLE` third for depth-by-band inspection.
 - **TREE interaction model**
   - TREE is fully collapsible.
-  - Initial TREE state is closed for nodes that have children.
+  - Initial TREE state is fully expanded so hierarchy is visible immediately on open.
   - Node selection remains inspector-driven in TREE the same way as ICICLE.
+- **ZOOMABLE CIRCLE PACKING interaction model**
+  - Circle packing supports click-to-focus transitions that zoom into hierarchy subtrees.
+  - Node click keeps inspector selection in sync while changing focus.
+  - Rendering uses focus layers (focus node + direct children by default, with constrained grandchildren when zoomed deeper) to reduce overlap density.
+  - When zoomed, breadcrumb + project-level zoom-out controls are shown in-chart to navigate focus.
+  - Clicking empty canvas while zoomed resets focus back out.
+  - Circle sizing is leaf-weighted and uses canonical tree structure for stable depth reading.
+  - Visual style is clean monochrome: white canvas, near-white node fills, subtle black strokes, no category color coding.
+  - Higher-order labels render as always-on-top title chips with strong contrast for readability under overlap.
+  - Title chips use lightweight collision avoidance and viewport clamping to prevent stacking and clipping.
+  - Small inline labels are suppressed by default; labels appear for larger circles and on hover/selection to keep the canvas readable.
+  - Intent/feature readability guardrail: upper hierarchy levels keep labels visible by default even in minimal mode.
+  - Decorative status/hatch cues are restrained and only emphasized on direct interaction/selection.
+- **Rationale**
+  - `TREE` as default optimizes first-pass structural readability and aligns with expected left-to-right hierarchy scanning.
+  - Circle packing is added as the second mode to provide a complementary density-first hierarchy perspective without replacing existing depth-band analysis in ICICLE.
+- **Follow-ups / open questions**
+  - Validate circle-packing performance on very large project graphs (node count and zoom animation smoothness).
+  - Consider adding touch-first gesture support (pinch/drag) if Project Intelligence usage on touch devices increases.
+  - Revisit hover/label radius thresholds after additional usability feedback on dense datasets.
+  - Consider exposing a user-facing layer-depth toggle (`children-only` vs `children+grandchildren`) for different project sizes.
 - **Shared-node projection policy**
   - TREE uses canonical single-parent projection for multi-parent graphs to prevent duplicate rendered nodes.
   - Shared nodes are explicitly marked with shared metadata (`Shared xN`).
@@ -407,12 +430,17 @@ Relevant files:
   - Supported variants: `soft-card`, `balanced-default`, `focus-mode`.
   - Default TREE variant is `focus-mode`.
   - Vertical depth rails are not used.
+  - TREE visual language uses a D3-like node-link treatment (circle anchors, curved links, inline labels, compact +/- collapse controls) for faster hierarchy scanning.
+  - TREE layout uses expanded spacing (larger depth indent and row gaps) to improve legibility on dense project hierarchies.
 
 Relevant files:
 
 - `src/features/project-intelligence/components/AppShell.tsx`
 - `src/features/project-intelligence/components/tree/TreeChart.tsx`
 - `src/features/project-intelligence/components/tree/TreeNode.tsx`
+- `src/features/project-intelligence/components/circle-packing/CirclePackingChart.tsx`
+- `src/features/project-intelligence/components/circle-packing/CirclePackingNode.tsx`
+- `src/features/project-intelligence/components/circle-packing/useCirclePackingLayout.ts`
 - `src/features/project-intelligence/lib/displayTree.ts`
 
 ### Project Intelligence inspector visual and ergonomics decisions
@@ -463,7 +491,7 @@ Broader product decisions are also represented here as baseline anchors and sour
 | --- | --- | --- |
 | Code-first navigation and graph behavior | covered | `docs/code-first-nav-and-graph-views.md` |
 | Project Intelligence draft/publish workflow | covered | `src/features/project-intelligence/components/AppShell.tsx`, `src/features/project-intelligence/components/inspector/*`, `src/features/project-intelligence/types.ts` |
-| Project Intelligence TREE mode (toggle, canonical projection, root hub, variants) | expanded | `src/features/project-intelligence/components/tree/*`, `src/features/project-intelligence/lib/displayTree.ts`, `src/features/project-intelligence/components/AppShell.tsx` |
+| Project Intelligence graph modes (TREE default, circle packing, icicle order, canonical projection) | expanded | `src/features/project-intelligence/components/AppShell.tsx`, `src/features/project-intelligence/components/tree/*`, `src/features/project-intelligence/components/circle-packing/*`, `src/features/project-intelligence/lib/displayTree.ts` |
 | Project Intelligence inspector visual layout and ergonomics | newly-added | `src/features/project-intelligence/components/inspector/*`, `src/features/project-intelligence/components/AppShell.tsx` |
 | Product overview and roadmap anchors | newly-added | `product/product-overview.md`, `product/product-roadmap.md` |
 | Data shape anchors | newly-added | `product/data-shape/data-shape.md` |

@@ -1,6 +1,7 @@
 import { ArrowLeft, Settings } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { CirclePackingChart } from '@/features/project-intelligence/components/circle-packing/CirclePackingChart'
 import { IcicleChart } from '@/features/project-intelligence/components/icicle/IcicleChart'
 import { FileQuickEditModal } from '@/features/project-intelligence/components/inspector/FileQuickEditModal'
 import { InspectorPanel } from '@/features/project-intelligence/components/inspector/InspectorPanel'
@@ -14,7 +15,7 @@ interface AppShellProps {
   projectId: string
 }
 
-type ViewMode = 'icicle' | 'tree'
+type ViewMode = 'tree' | 'circle-packing' | 'icicle'
 
 function updateTreeNode(
   tree: ProjectTree,
@@ -54,7 +55,7 @@ export function AppShell({ projectId }: AppShellProps) {
   const [tree, setTree] = useState<ProjectTree>(() => loadProjectTree())
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [zoomRootId, setZoomRootId] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('icicle')
+  const [viewMode, setViewMode] = useState<ViewMode>('tree')
   const [treeAppearance, setTreeAppearance] = useState<TreeNodeVariant>('focus-mode')
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([])
   const [showPendingChangesModal, setShowPendingChangesModal] = useState(false)
@@ -204,7 +205,7 @@ export function AppShell({ projectId }: AppShellProps) {
           <span className="opacity-70">·</span>
           <span className="font-semibold">{tree.meta.projectName}</span>
           <span className="opacity-70">· Last hook run {new Date(tree.meta.lastHookRun).toLocaleString()}</span>
-          {viewMode === 'icicle' && zoomLabel ? <span className="rounded bg-white/15 px-2 py-0.5">Zoom: {zoomLabel}</span> : null}
+          {viewMode !== 'tree' && zoomLabel ? <span className="rounded bg-white/15 px-2 py-0.5">Zoom: {zoomLabel}</span> : null}
           {hasPendingChanges ? (
             <span className="rounded-full border border-amber-300/70 bg-amber-300/15 px-2 py-0.5 text-[11px] font-semibold text-amber-100">
               Publish required · {pendingChanges.length}
@@ -214,8 +215,9 @@ export function AppShell({ projectId }: AppShellProps) {
         <div className="flex items-center gap-2">
           <div className="flex overflow-hidden rounded-md border border-white/20 bg-white/5">
             {([
-              ['icicle', 'ICICLE'],
               ['tree', 'TREE'],
+              ['circle-packing', 'ZOOMABLE CIRCLE PACKING'],
+              ['icicle', 'ICICLE'],
             ] as const).map(([mode, label]) => (
               <button
                 key={mode}
@@ -282,6 +284,17 @@ export function AppShell({ projectId }: AppShellProps) {
         <section className="h-full min-w-0 flex-1 border-r border-[var(--pi-color-border)]">
           {viewMode === 'icicle' ? (
             <IcicleChart
+              tree={tree}
+              selectedNodeId={selectedNodeId}
+              zoomRootId={zoomRootId}
+              onNodeClick={(id) => setSelectedNodeId(id)}
+              onNodeDoubleClick={(id) => {
+                if (zoomRootId !== id) setZoomRootId(id)
+              }}
+              onZoomOut={() => setZoomRootId(null)}
+            />
+          ) : viewMode === 'circle-packing' ? (
+            <CirclePackingChart
               tree={tree}
               selectedNodeId={selectedNodeId}
               zoomRootId={zoomRootId}

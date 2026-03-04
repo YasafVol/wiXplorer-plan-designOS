@@ -22,13 +22,12 @@ interface RootHub {
   y: number
 }
 
-const INDENT_X = 50
-const ROW_HEIGHT = 38
-const NODE_WIDTH = 216
-const PADDING_X = 34
-const PADDING_Y = 26
-const CONNECTOR_X_OFFSET = 7
-const CONNECTOR_Y_OFFSET = 12
+const INDENT_X = 220
+const ROW_HEIGHT = 46
+const PADDING_X = 52
+const PADDING_Y = 40
+const CONNECTOR_X_OFFSET = 0
+const CONNECTOR_Y_OFFSET = 0
 
 function buildTreeLayout(tree: ProjectTree, collapsedNodeIds: ReadonlySet<string>): {
   nodes: TreeLayoutNode[]
@@ -92,7 +91,7 @@ function buildTreeLayout(tree: ProjectTree, collapsedNodeIds: ReadonlySet<string
     const toY = node.y + CONNECTOR_Y_OFFSET
     branches.push({
       id: `${parent.id}->${node.id}`,
-      d: `M ${fromX} ${fromY} H ${fromX + 10} V ${toY} H ${toX}`,
+      d: `M ${fromX} ${fromY} C ${fromX + 20} ${fromY}, ${toX - 20} ${toY}, ${toX} ${toY}`,
     })
   }
 
@@ -103,7 +102,7 @@ function buildTreeLayout(tree: ProjectTree, collapsedNodeIds: ReadonlySet<string
       .map((id) => nodeById[id])
       .filter((node): node is TreeLayoutNode => Boolean(node))
       .map((node) => node.y + CONNECTOR_Y_OFFSET)
-    const hubX = PADDING_X - 14
+    const hubX = PADDING_X - 20
     const hubY = topLevelYs.reduce((sum, value) => sum + value, 0) / topLevelYs.length
     rootHub = { x: hubX, y: hubY }
 
@@ -114,12 +113,12 @@ function buildTreeLayout(tree: ProjectTree, collapsedNodeIds: ReadonlySet<string
       const toY = node.y + CONNECTOR_Y_OFFSET
       rootBranches.push({
         id: `root->${id}`,
-        d: `M ${hubX} ${hubY} C ${hubX + 10} ${hubY}, ${toX - 10} ${toY}, ${toX} ${toY}`,
+        d: `M ${hubX} ${hubY} C ${hubX + 20} ${hubY}, ${toX - 20} ${toY}, ${toX} ${toY}`,
       })
     }
   }
 
-  const svgWidth = Math.max(PADDING_X * 2 + (maxDepth + 1) * INDENT_X + NODE_WIDTH + 64, 640)
+  const svgWidth = Math.max(PADDING_X * 2 + (maxDepth + 1) * INDENT_X + 320, 720)
   const svgHeight = Math.max(PADDING_Y * 2 + row * ROW_HEIGHT, 220)
 
   return { nodes, branches, rootBranches, rootHub, visibleIds, svgWidth, svgHeight }
@@ -147,9 +146,7 @@ function getVisibleSelectionId(
 export function TreeChart({ tree, selectedNodeId, variant, onNodeClick }: TreeChartProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const [containerWidth, setContainerWidth] = useState(0)
-  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(
-    () => new Set(tree.nodes.filter((node) => node.children.length > 0).map((node) => node.id)),
-  )
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     const target = wrapRef.current
@@ -215,8 +212,8 @@ export function TreeChart({ tree, selectedNodeId, variant, onNodeClick }: TreeCh
             key={branch.id}
             d={branch.d}
             fill="none"
-            stroke="color-mix(in srgb, var(--pi-color-border) 65%, white 35%)"
-            strokeWidth={1.5}
+            stroke="rgba(148,163,184,0.55)"
+            strokeWidth={1.4}
           />
         ))}
         {branches.map((branch) => (
@@ -224,8 +221,8 @@ export function TreeChart({ tree, selectedNodeId, variant, onNodeClick }: TreeCh
             key={branch.id}
             d={branch.d}
             fill="none"
-            stroke="var(--pi-color-border)"
-            strokeWidth={1.25}
+            stroke="rgba(100,116,139,0.45)"
+            strokeWidth={1.2}
           />
         ))}
         {rootHub ? (
@@ -240,8 +237,6 @@ export function TreeChart({ tree, selectedNodeId, variant, onNodeClick }: TreeCh
             node={node}
             selected={effectiveSelectedId === node.id}
             muted={variant === 'focus-mode' && focusNodeIds ? !focusNodeIds.has(node.id) : false}
-            width={NODE_WIDTH}
-            variant={variant}
             onSelect={onNodeClick}
             onToggleCollapse={(nodeId) =>
               setCollapsedNodeIds((prev) => {

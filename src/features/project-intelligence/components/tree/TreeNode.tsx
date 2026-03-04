@@ -22,8 +22,6 @@ interface TreeNodeProps {
   node: TreeLayoutNode
   selected: boolean
   muted: boolean
-  width: number
-  variant: TreeNodeVariant
   onSelect: (nodeId: string) => void
   onToggleCollapse: (nodeId: string) => void
 }
@@ -37,96 +35,48 @@ const CATEGORY_COLOR: Record<string, string> = {
   data: 'var(--pi-color-data)',
 }
 
-const TOGGLE_SIZE = 14
+const NODE_RADIUS = 6
+const TOGGLE_RADIUS = 7
 
-function truncateLabel(label: string, width: number) {
-  const usable = Math.max(0, width - 24)
-  const estimatedChars = Math.floor(usable / 7)
+function truncateLabel(label: string) {
+  const estimatedChars = 26
   if (estimatedChars <= 2) return ''
   if (label.length <= estimatedChars) return label
   return `${label.slice(0, Math.max(estimatedChars - 1, 1))}…`
 }
 
-function variantStyle(variant: TreeNodeVariant) {
-  if (variant === 'balanced-default') {
-    return {
-      height: 24,
-      radius: 5,
-      fontSize: 11,
-      fontWeight: 600,
-      fill: 'rgba(24,24,27,0.94)',
-      stroke: 'rgba(120,113,108,0.5)',
-      text: 'rgba(250,250,249,0.95)',
-      toggleFill: 'rgba(39,39,42,0.95)',
-      toggleStroke: 'rgba(82,82,91,0.85)',
-      toggleText: 'rgba(231,229,228,0.95)',
-    }
-  }
-
-  if (variant === 'focus-mode') {
-    return {
-      height: 26,
-      radius: 8,
-      fontSize: 11.5,
-      fontWeight: 600,
-      fill: null,
-      stroke: 'rgba(17,24,39,0.28)',
-      text: 'white',
-      toggleFill: 'rgba(120,113,108,0.16)',
-      toggleStroke: 'rgba(120,113,108,0.4)',
-      toggleText: 'var(--pi-color-text-secondary)',
-    }
-  }
-
-  return {
-    height: 26,
-    radius: 8,
-    fontSize: 11.5,
-    fontWeight: 600,
-    fill: null,
-    stroke: 'rgba(17,24,39,0.25)',
-    text: 'white',
-    toggleFill: 'rgba(120,113,108,0.14)',
-    toggleStroke: 'rgba(120,113,108,0.35)',
-    toggleText: 'var(--pi-color-text-secondary)',
-  }
-}
-
-export function TreeNode({ node, selected, muted, width, variant, onSelect, onToggleCollapse }: TreeNodeProps) {
+export function TreeNode({ node, selected, muted, onSelect, onToggleCollapse }: TreeNodeProps) {
   const category = NODE_CATEGORY[node.type]
-  const fill = CATEGORY_COLOR[category]
+  const nodeStroke = CATEGORY_COLOR[category]
   const showStatus = node.status === 'warning' || node.status === 'error'
   const statusColor = node.status === 'warning' ? 'var(--pi-color-warning)' : 'var(--pi-color-error)'
-  const style = variantStyle(variant)
-  const nodeFill = style.fill ?? fill
-  const label = truncateLabel(node.label, width)
-  const baselineY = style.height / 2 + 4
+  const label = truncateLabel(node.label)
   const opacity = muted ? 0.32 : 1
 
   return (
-    <g transform={`translate(${node.x}, ${node.y})`} style={{ cursor: 'pointer', opacity }}>
+    <g transform={`translate(${node.x}, ${node.y})`} style={{ opacity }}>
       {node.hasChildren ? (
         <g
-          transform={`translate(0, ${(style.height - TOGGLE_SIZE) / 2})`}
+          transform={`translate(${-18}, 0)`}
           onClick={(event) => {
             event.stopPropagation()
             onToggleCollapse(node.id)
           }}
+          style={{ cursor: 'pointer' }}
         >
-          <rect
-            width={TOGGLE_SIZE}
-            height={TOGGLE_SIZE}
-            rx={3}
-            fill={style.toggleFill}
-            stroke={style.toggleStroke}
+          <circle
+            r={TOGGLE_RADIUS}
+            fill="white"
+            stroke="rgba(15,23,42,0.6)"
             strokeWidth={1}
           />
           <text
-            x={TOGGLE_SIZE / 2}
-            y={TOGGLE_SIZE / 2 + 4}
+            x={0}
+            y={4}
             textAnchor="middle"
             fontSize={11}
-            fill={style.toggleText}
+            fill="rgba(15,23,42,0.9)"
+            fontWeight={700}
             pointerEvents="none"
           >
             {node.isCollapsed ? '+' : '-'}
@@ -134,43 +84,31 @@ export function TreeNode({ node, selected, muted, width, variant, onSelect, onTo
         </g>
       ) : null}
 
-      <g transform={`translate(${node.hasChildren ? TOGGLE_SIZE + 8 : 0}, 0)`} onClick={() => onSelect(node.id)}>
-        <rect
-          width={width}
-          height={style.height}
-          rx={style.radius}
-          fill={nodeFill}
-          stroke={selected ? 'var(--pi-color-text-primary)' : style.stroke}
-          strokeWidth={selected ? 2 : 1}
-          className="transition-all duration-150 hover:brightness-110 hover:shadow-lg"
+      <g onClick={() => onSelect(node.id)} style={{ cursor: 'pointer' }}>
+        <circle
+          r={NODE_RADIUS}
+          fill="white"
+          stroke={selected ? 'rgba(15,23,42,1)' : nodeStroke}
+          strokeWidth={selected ? 2.6 : 1.5}
+          className="transition-all duration-150"
         />
         <text
-          x={10}
-          y={baselineY}
-          fill={style.text}
-          fontSize={style.fontSize}
-          fontWeight={style.fontWeight}
+          x={NODE_RADIUS + 8}
+          y={4}
+          fill={selected ? 'rgba(15,23,42,1)' : 'rgba(15,23,42,0.9)'}
+          fontSize={12}
+          fontWeight={selected ? 700 : 500}
           pointerEvents="none"
         >
           {label}
         </text>
         {showStatus ? (
-          <circle
-            cx={Math.max(width - 10, 10)}
-            cy={style.height / 2}
-            r={4}
-            fill={statusColor}
-            stroke="white"
-            strokeWidth={1}
-          />
+          <circle cx={NODE_RADIUS + 4} cy={-NODE_RADIUS + 1} r={3.1} fill={statusColor} stroke="white" strokeWidth={0.9} />
         ) : null}
         {node.isShared ? (
-          <g transform={`translate(0, ${style.height + 2})`}>
-            <rect width={64} height={14} rx={4} fill="rgba(255,255,255,0.9)" />
-            <text x={5} y={10} fill="rgba(68,64,60,0.95)" fontSize={9.5} fontWeight={700}>
-              Shared x{node.sharedParentCount}
-            </text>
-          </g>
+          <text x={NODE_RADIUS + 8} y={18} fill="rgba(71,85,105,0.95)" fontSize={10.5} fontWeight={600} pointerEvents="none">
+            Shared x{node.sharedParentCount}
+          </text>
         ) : null}
       </g>
     </g>
