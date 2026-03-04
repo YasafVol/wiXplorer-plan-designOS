@@ -1,0 +1,11 @@
+{
+  "id": "hotel-meridian",
+  "name": "Hotel Meridian",
+  "description": "Enterprise hospitality model with multi-surface booking journeys, staff operations, and site-level business solution orchestration.",
+  "domain": "meridianhotels.com",
+  "views": {
+    "graph": true,
+    "codeNavigation": true,
+    "intelligence": true
+  }
+}

@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { AppShell } from '@/features/project-intelligence/components/AppShell'
+import { ProjectViewRendererHost } from '@/features/project-views/components/ProjectViewRendererHost'
 import { getProject } from '@/projects'
 
 export function ProjectIntelligencePage() {
@@ -25,5 +25,21 @@ export function ProjectIntelligencePage() {
     )
   }
 
-  return <AppShell projectId={project.id} />
+  if (!project.viewCapabilities.intelligence) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950">
+        <div className="text-center">
+          <p className="text-stone-500 dark:text-stone-400 mb-4">Project intelligence is disabled for this project.</p>
+          <button
+            onClick={() => navigate(`/projects/${project.id}`)}
+            className="text-sm text-stone-600 dark:text-stone-400 underline underline-offset-2"
+          >
+            Open graph view
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <ProjectViewRendererHost project={project} mode="intelligence" />
 }

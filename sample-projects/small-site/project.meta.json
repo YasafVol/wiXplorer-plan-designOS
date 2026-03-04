@@ -1,0 +1,11 @@
+{
+  "id": "small-site",
+  "name": "Small Site",
+  "description": "A focused Wix site with a shop, blog, and a few pages. Good for exploring core graph patterns.",
+  "domain": "mybusiness.wixsite.com",
+  "views": {
+    "graph": true,
+    "codeNavigation": true,
+    "intelligence": true
+  }
+}

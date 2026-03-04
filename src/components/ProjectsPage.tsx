@@ -4,11 +4,11 @@ import { PROJECTS } from '@/projects'
 import type { ProjectMeta } from '@/projects'
 
 function isCodeProject(project: ProjectMeta): boolean {
-  return project.name.startsWith('Code:')
+  return project.viewCapabilities.codeNavigation
 }
 
 function hasProjectIntelligenceView(project: ProjectMeta): boolean {
-  return project.id === 'intent-meridian-hotel'
+  return project.viewCapabilities.intelligence
 }
 
 function formatExtensionType(kind: string): string {
@@ -174,8 +174,7 @@ function ProjectCard({ project }: { project: ProjectMeta }) {
 }
 
 export function ProjectsPage() {
-  const codeProjects = PROJECTS.filter((project) => isCodeProject(project))
-  const regularProjects = PROJECTS.filter((project) => !isCodeProject(project))
+  const prioritizedProjects = [...PROJECTS].sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex flex-col">
@@ -217,24 +216,8 @@ export function ProjectsPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 mb-8">
-          {regularProjects.map((project) => (
+          {prioritizedProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
-
-        <div className="mb-3">
-          <h3
-            className="text-sm font-semibold text-stone-800 dark:text-stone-200"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            Code Projects
-          </h3>
-        </div>
-        <div className="flex flex-nowrap gap-4 overflow-x-auto pb-2">
-          {codeProjects.map((project) => (
-            <div key={project.id} className="min-w-[320px] flex-1">
-              <ProjectCard project={project} />
-            </div>
           ))}
         </div>
       </main>

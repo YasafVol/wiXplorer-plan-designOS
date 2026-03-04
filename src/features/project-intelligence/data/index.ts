@@ -1,14 +1,7 @@
 import { buildTree } from '@/features/project-intelligence/lib/buildTree'
 import { parseIntentDoc } from '@/features/project-intelligence/lib/parseIntentDoc'
+import { getSampleProjectManifestEntry } from '@/projects/sampleProjectManifest'
 import type { ParsedIntentDoc, ProjectIndex, ProjectTree } from '@/features/project-intelligence/types'
-
-import rawIndexText from './project-intelligence.json?raw'
-
-const intentDocsRaw = import.meta.glob('./*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-})
 
 function stripJsonComments(text: string): string {
   let output = ''
@@ -89,28 +82,40 @@ function parseProjectIndex(rawText: string): ProjectIndex {
   }
 }
 
-function parseAllIntentDocs(): ParsedIntentDoc[] {
-  const entries = Object.entries(intentDocsRaw)
-    .filter(([sourcePath]) => !sourcePath.includes('/untitled folder/'))
-    .sort(([a], [b]) => a.localeCompare(b))
+function parseAllIntentDocs(rawDocs: Record<string, string>): ParsedIntentDoc[] {
+  const entries = Object.entries(rawDocs).sort(([a], [b]) => a.localeCompare(b))
 
   if (entries.length === 0) {
-    throw new Error('No top-level intent markdown files found in data directory')
+    throw new Error('No intent markdown files found for the selected project')
   }
 
   return entries.map(([sourcePath, markdown]) => {
-    return parseIntentDoc(markdown as string, sourcePath)
+    return parseIntentDoc(markdown, sourcePath)
   })
 }
 
-export function loadProjectIndex(): ProjectIndex {
-  return parseProjectIndex(rawIndexText)
+function resolveProjectIntelligencePayload(projectId: string): { indexRaw: string; docsRaw: Record<string, string> } {
+  const manifestEntry = getSampleProjectManifestEntry(projectId)
+  if (!manifestEntry) {
+    throw new Error(`Unknown project id "${projectId}"`)
+  }
+
+  return {
+    indexRaw: manifestEntry.intelligenceIndexRaw,
+    docsRaw: manifestEntry.intelligenceDocsRaw,
+  }
 }
 
-export function loadProjectTree(): ProjectTree {
-  const index = loadProjectIndex()
-  const intentDocs = parseAllIntentDocs()
+export function loadProjectIndex(projectId = 'hotel-meridian'): ProjectIndex {
+  const { indexRaw } = resolveProjectIntelligencePayload(projectId)
+  return parseProjectIndex(indexRaw)
+}
+
+export function loadProjectTree(projectId = 'hotel-meridian'): ProjectTree {
+  const { docsRaw } = resolveProjectIntelligencePayload(projectId)
+  const index = loadProjectIndex(projectId)
+  const intentDocs = parseAllIntentDocs(docsRaw)
   return buildTree(index, intentDocs)
 }
 
-export const PROJECT_TREE = loadProjectTree()
+export const PROJECT_TREE = loadProjectTree('hotel-meridian')

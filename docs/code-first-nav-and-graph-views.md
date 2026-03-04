@@ -474,6 +474,59 @@ Relevant files:
 - `src/features/project-intelligence/components/inspector/FileList.tsx`
 - `src/features/project-intelligence/components/inspector/ConnectionList.tsx`
 
+### Sample project reorg and shared view chrome (2026-03-04)
+
+What changed:
+
+- Active sample projects were reduced and normalized to two IDs:
+  - `small-site`
+  - `hotel-meridian`
+- Added a repo-style sample root with per-project metadata:
+  - `sample-projects/small-site/project.meta.json`
+  - `sample-projects/hotel-meridian/project.meta.json`
+- Replaced hardcoded mixed project registry with manifest-driven registration.
+- Introduced explicit per-project view capabilities (`graph`, `codeNavigation`, `intelligence`) and removed old hardcoded view checks.
+- Project intelligence loading is now project-scoped (`loadProjectTree(projectId)` / `loadProjectIndex(projectId)`) via sample-project manifest payloads.
+- Added shared cross-view chrome primitives:
+  - shared top bar for graph/code views (`ProjectViewTopBar`)
+  - shared inspector-pane sizing behavior hook reused across code navigation and project intelligence (`useInspectorPaneState`).
+  - shared shell container used by graph/code route pages (`ProjectViewShell`).
+- Added shared renderer entry host:
+  - `ProjectViewRendererHost` now mounts graph/code/intelligence renderers from a common route-level switch.
+  - `CodeNavigationView` was split from `CodeNavigationPage` so code navigation can be mounted from the shared host while keeping a thin route wrapper.
+
+Why this was chosen:
+
+- The previous setup mixed multiple legacy sample IDs and global intelligence payload assumptions, making project-level cleanup and expansion difficult.
+- Manifest-driven project registration centralizes ownership and allows project capabilities to be declarative instead of inferred from names/IDs.
+- Project-scoped intelligence loading aligns routing (`/projects/:projectId/...`) with data ownership and avoids hidden global coupling.
+- Sharing top-bar and inspector-pane behavior reduces UX drift between views while preserving each renderer's distinct interaction model.
+
+Impacted areas/files:
+
+- `sample-projects/README.md`
+- `sample-projects/small-site/*`
+- `sample-projects/hotel-meridian/*`
+- `src/projects/sampleProjectManifest.ts`
+- `src/projects/index.ts`
+- `src/features/project-intelligence/data/index.ts`
+- `src/features/project-intelligence/components/AppShell.tsx`
+- `src/features/project-views/components/ProjectViewTopBar.tsx`
+- `src/features/project-views/inspector/useInspectorPaneState.ts`
+- `src/features/project-views/components/ProjectViewShell.tsx`
+- `src/features/project-views/components/ProjectViewRendererHost.tsx`
+- `src/components/ProjectsPage.tsx`
+- `src/components/ProjectGraphPage.tsx`
+- `src/components/CodeNavigationPage.tsx`
+- `src/components/ProjectIntelligencePage.tsx`
+- `src/components/ProjectInventoryPage.tsx`
+
+Follow-ups / open questions:
+
+- `small-site` currently reuses seeded code-navigation and intelligence datasets; replace with small-site-specific payloads under `sample-projects/small-site/{code-navigation,intelligence}`.
+- The top-bar/inspector standardization is partially complete (graph + code top bar, shared pane behavior). A next pass can unify the full shell chrome across all three renderers under a single host component.
+- Move physical graph/code/intelligence payload files into each `sample-projects/<id>/...` folder to complete the data-level reorg and remove transitional imports from legacy locations.
+
 ### Product baseline decisions reflected here (repo-wide anchors)
 
 This document remains the canonical decision log for navigation/graph/inspector behavior.  

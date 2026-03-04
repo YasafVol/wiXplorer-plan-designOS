@@ -687,7 +687,7 @@ export function ProjectInventoryPage() {
     )
   }
 
-  if (project.name.startsWith('Code:')) {
+  if (project.viewCapabilities.codeNavigation) {
     return (
       <div className="h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950">
         <div className="text-center space-y-3">

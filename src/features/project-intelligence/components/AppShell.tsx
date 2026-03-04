@@ -1,5 +1,5 @@
 import { ArrowLeft, Settings } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CirclePackingChart } from '@/features/project-intelligence/components/circle-packing/CirclePackingChart'
 import { IcicleChart } from '@/features/project-intelligence/components/icicle/IcicleChart'
@@ -7,6 +7,7 @@ import { FileQuickEditModal } from '@/features/project-intelligence/components/i
 import { InspectorPanel } from '@/features/project-intelligence/components/inspector/InspectorPanel'
 import { PendingChangesReviewModal } from '@/features/project-intelligence/components/inspector/PendingChangesReviewModal'
 import { TreeChart } from '@/features/project-intelligence/components/tree/TreeChart'
+import { useInspectorPaneState } from '@/features/project-views/inspector/useInspectorPaneState'
 import type { TreeNodeVariant } from '@/features/project-intelligence/components/tree/TreeNode'
 import { loadProjectTree } from '@/features/project-intelligence/data'
 import type { PendingChange, ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
@@ -52,7 +53,7 @@ interface FileQuickEditTarget {
 
 export function AppShell({ projectId }: AppShellProps) {
   const navigate = useNavigate()
-  const [tree, setTree] = useState<ProjectTree>(() => loadProjectTree())
+  const [tree, setTree] = useState<ProjectTree>(() => loadProjectTree(projectId))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [zoomRootId, setZoomRootId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('tree')
@@ -64,43 +65,13 @@ export function AppShell({ projectId }: AppShellProps) {
   const zoomLabel = useMemo(() => (zoomRootId ? tree.nodesById[zoomRootId]?.label ?? 'Zoomed' : null), [tree, zoomRootId])
   const hasPendingChanges = pendingChanges.length > 0
 
-  const MIN_INSPECTOR_PX = 320
-  const MAX_INSPECTOR_RATIO = 0.33
-  const [inspectorWidth, setInspectorWidth] = useState(380)
   const containerRef = useRef<HTMLDivElement>(null)
-  const isDragging = useRef(false)
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      isDragging.current = true
-      const startX = e.clientX
-      const startWidth = inspectorWidth
-
-      const onMove = (ev: MouseEvent) => {
-        if (!isDragging.current) return
-        const containerW = containerRef.current?.offsetWidth ?? window.innerWidth
-        const maxPx = containerW * MAX_INSPECTOR_RATIO
-        const delta = startX - ev.clientX
-        const next = Math.min(maxPx, Math.max(MIN_INSPECTOR_PX, startWidth + delta))
-        setInspectorWidth(next)
-      }
-
-      const onUp = () => {
-        isDragging.current = false
-        document.removeEventListener('mousemove', onMove)
-        document.removeEventListener('mouseup', onUp)
-        document.body.style.cursor = ''
-        document.body.style.userSelect = ''
-      }
-
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
-      document.addEventListener('mousemove', onMove)
-      document.addEventListener('mouseup', onUp)
-    },
-    [inspectorWidth],
-  )
+  const { width: inspectorWidth, startResize } = useInspectorPaneState({
+    defaultOpen: true,
+    defaultWidth: 380,
+    minWidth: 320,
+    maxWidthRatio: 0.33,
+  })
 
   const createPendingChangeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
@@ -314,7 +285,7 @@ export function AppShell({ projectId }: AppShellProps) {
           )}
         </section>
         <div
-          onMouseDown={handleResizeStart}
+          onMouseDown={(event) => startResize(event, containerRef.current)}
           className="group relative z-10 h-full w-1 shrink-0 cursor-col-resize"
         >
           <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--pi-color-inspector-border)] transition-colors group-hover:bg-stone-400 group-active:bg-stone-500 dark:group-hover:bg-stone-500 dark:group-active:bg-stone-400" />

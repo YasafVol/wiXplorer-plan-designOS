@@ -1,7 +1,12 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
 import { useState, useRef, useEffect, useCallback, useMemo, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, PanelRight, ChevronsUpDown, ChevronRight, ChevronDown, FileCode2, Minus, Plus } from 'lucide-react'
+import { PanelRight, ChevronsUpDown, ChevronRight, ChevronDown, FileCode2, Minus, Plus } from 'lucide-react'
+import { ProjectViewShell } from '@/features/project-views/components/ProjectViewShell'
+import { ProjectViewTopBar } from '@/features/project-views/components/ProjectViewTopBar'
+import { useInspectorPaneState } from '@/features/project-views/inspector/useInspectorPaneState'
 import { getProject } from '@/projects'
+import type { ProjectMeta } from '@/projects'
 import { ClusterNodeCard } from '@/sections/project-graph/components/ClusterNodeCard'
 import type { ClusterNode } from '@/sections/project-graph/components/clusterUtils'
 
@@ -39,6 +44,21 @@ type InspectorSelection =
   | { kind: 'extensionType'; subGraph: string }
   | { kind: 'extensionInstance'; groupId: string }
   | { kind: 'file'; nodeId: string }
+
+const EMPTY_CODE_NAV_DATA: {
+  project: GraphNode
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+} = {
+  project: {
+    id: 'empty-code-project',
+    type: 'project',
+    label: 'Empty Code Project',
+    meta: {},
+  },
+  nodes: [],
+  edges: [],
+}
 
 const MIN_CANVAS_W = 980
 const MIN_CANVAS_H = 880
@@ -253,12 +273,15 @@ function edgeRelation(edgeType: string): RenderEdge['relation'] {
   return 'code'
 }
 
-export function CodeNavigationPage() {
-  const { projectId } = useParams<{ projectId: string }>()
-  const navigate = useNavigate()
-  const project = projectId ? getProject(projectId) : undefined
+export function CodeNavigationView({ project }: { project: ProjectMeta }) {
+  const codeNavigationEnabled = Boolean(project.viewCapabilities.codeNavigation)
 
-  const [paneOpen, setPaneOpen] = useState(true)
+  const { isOpen: paneOpen, width: paneWidth, toggle: togglePane, startResize } = useInspectorPaneState({
+    defaultOpen: true,
+    defaultWidth: 384,
+    minWidth: 320,
+    maxWidthRatio: 0.4,
+  })
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [highlightChain, setHighlightChain] = useState(false)
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('stratified')
@@ -278,31 +301,26 @@ export function CodeNavigationPage() {
     startTY: 0,
   })
 
-  if (!project || !project.name.startsWith('Code:')) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Code navigation is only available for code projects.</p>
-      </div>
-    )
-  }
-
-  const data = project.data as {
+  const data = (project.codeNavigationData ?? EMPTY_CODE_NAV_DATA) as {
     project: GraphNode
     nodes: GraphNode[]
     edges: GraphEdge[]
   }
 
-  const nodeById = new Map<string, GraphNode>([data.project, ...data.nodes].map((node) => [node.id, node]))
+  const nodeById = useMemo(
+    () => new Map<string, GraphNode>([data.project, ...data.nodes].map((node) => [node.id, node])),
+    [data.project, data.nodes]
+  )
   const selectedNode = selectedNodeId ? nodeById.get(selectedNodeId) ?? null : null
   const codeNodes = data.nodes.filter((node) => node.type === 'code')
   const nonCodeNodes = data.nodes.filter((node) => node.type !== 'code')
   const groupedNodes = codeNodes.filter((node) => getNodeKind(node) === 'scheduledJobGroup')
-  const groupedIds = new Set(groupedNodes.map((node) => node.id))
+  const groupedIds = useMemo(() => new Set(groupedNodes.map((node) => node.id)), [groupedNodes])
   const memberNodes = codeNodes.filter((node) => {
     const kind = getNodeKind(node)
     return kind === 'builderFile' || kind === 'handlerFile'
   })
-  const memberIds = new Set(memberNodes.map((node) => node.id))
+  const memberIds = useMemo(() => new Set(memberNodes.map((node) => node.id)), [memberNodes])
   const extensionsRoot = codeNodes.find((node) => getNodeKind(node) === 'extensionsRoot') ?? null
 
   const membersByGroupId = useMemo(() => {
@@ -478,18 +496,24 @@ export function CodeNavigationPage() {
     return next
   }, [extensionsRoot, groupedNodes, membersByGroupId, expandedGroupIds])
 
-  const baseVisibleNodeIds =
-    scopeMode === 'code'
-      ? baseVisibleCodeNodeIds
-      : [...baseVisibleCodeNodeIds, ...nonCodeNodes.map((node) => node.id)]
-  const baseVisibleNodeSet = new Set(baseVisibleNodeIds)
+  const baseVisibleNodeIds = useMemo(
+    () =>
+      scopeMode === 'code'
+        ? baseVisibleCodeNodeIds
+        : [...baseVisibleCodeNodeIds, ...nonCodeNodes.map((node) => node.id)],
+    [scopeMode, baseVisibleCodeNodeIds, nonCodeNodes]
+  )
+  const baseVisibleNodeSet = useMemo(() => new Set(baseVisibleNodeIds), [baseVisibleNodeIds])
   const tempRevealNodeIds = useMemo(() => {
     if (inspectorSelection.kind !== 'extensionInstance' && inspectorSelection.kind !== 'file') return []
     return connectedEntities.map((node) => node.id).filter((id) => !baseVisibleNodeSet.has(id))
   }, [inspectorSelection.kind, connectedEntities, baseVisibleNodeSet])
-  const visibleNodeIds = [...new Set([...baseVisibleNodeIds, ...tempRevealNodeIds])]
+  const visibleNodeIds = useMemo(
+    () => [...new Set([...baseVisibleNodeIds, ...tempRevealNodeIds])],
+    [baseVisibleNodeIds, tempRevealNodeIds]
+  )
   const visibleCodeNodeIds = visibleNodeIds.filter((nodeId) => nodeById.get(nodeId)?.type === 'code')
-  const visibleNodeSet = new Set(visibleNodeIds)
+  const visibleNodeSet = useMemo(() => new Set(visibleNodeIds), [visibleNodeIds])
 
   const laneWeight = (id: string) => (id === 'client' || id === 'server' ? 3 : 1)
   const stratifiedTotalHeight = STRATIFIED_H * STRATIFIED_LABELS.reduce((sum, lane) => sum + laneWeight(lane.id), 0)
@@ -497,20 +521,23 @@ export function CodeNavigationPage() {
   const stratifiedBottom = stratifiedTotalHeight / 2
   const stratifiedTotalUnits = STRATIFIED_LABELS.reduce((sum, lane) => sum + laneWeight(lane.id), 0)
   const stratifiedUnitHeight = (stratifiedBottom - stratifiedTop) / stratifiedTotalUnits
-  let stratifiedCursor = stratifiedTop
-  const stratifiedLanes: LaneDef[] = STRATIFIED_LABELS.map((lane) => {
-    const height = stratifiedUnitHeight * laneWeight(lane.id)
-    const top = stratifiedCursor
-    const bottom = top + height
-    stratifiedCursor = bottom
-    return {
-      ...lane,
-      y: top + height / 2,
-      top,
-      bottom,
-      dashed: lane.id !== 'client' && lane.id !== 'server',
-    }
-  })
+  const stratifiedLanes: LaneDef[] = STRATIFIED_LABELS.reduce<LaneDef[]>(
+    (lanes, lane) => {
+      const previousBottom = lanes.length > 0 ? lanes[lanes.length - 1].bottom : stratifiedTop
+      const height = stratifiedUnitHeight * laneWeight(lane.id)
+      const top = previousBottom
+      const bottom = top + height
+      lanes.push({
+        ...lane,
+        y: top + height / 2,
+        top,
+        bottom,
+        dashed: lane.id !== 'client' && lane.id !== 'server',
+      })
+      return lanes
+    },
+    []
+  )
 
   const leftGuides = [
     { key: 'pages-left', label: 'Pages', tone: 'page' as const },
@@ -1006,21 +1033,25 @@ export function CodeNavigationPage() {
     })
   }
 
+  if (!codeNavigationEnabled) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Code navigation is only available for code-enabled projects.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
-      <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Projects
-        </button>
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
-        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{project.name}</span>
-        <span className="text-[10px] text-slate-400 dark:text-slate-500">code navigation</span>
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
-        <div className="inline-flex rounded-full border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <ProjectViewShell
+      className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950"
+      topBar={
+        <ProjectViewTopBar
+          projectName={project.name}
+          projectDomain={project.domain}
+          viewLabel="code navigation"
+          trailingContent={
+            <>
+              <div className="inline-flex rounded-full border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => setScopeMode('project')}
             className={`px-2.5 py-1 text-[11px] font-semibold transition-colors ${
@@ -1074,9 +1105,8 @@ export function CodeNavigationPage() {
             Cross section
           </button>
         </div>
-        <div className="flex-1" />
         <button
-          onClick={() => setPaneOpen((value) => !value)}
+          onClick={togglePane}
           className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
             paneOpen
               ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
@@ -1120,7 +1150,11 @@ export function CodeNavigationPage() {
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
+            </>
+          }
+        />
+      }
+    >
 
       <div className="flex-1 flex overflow-hidden">
         <div
@@ -1563,7 +1597,14 @@ export function CodeNavigationPage() {
         </div>
 
         {paneOpen && (
-          <aside className="w-96 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-auto">
+          <>
+            <div
+              onMouseDown={(event) => startResize(event, containerRef.current)}
+              className="group relative z-10 h-full w-1 shrink-0 cursor-col-resize"
+            >
+              <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-slate-200 transition-colors group-hover:bg-slate-400 group-active:bg-slate-500 dark:bg-slate-700 dark:group-hover:bg-slate-500 dark:group-active:bg-slate-400" />
+            </div>
+          <aside style={{ width: paneWidth }} className="shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-auto">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800">
               <div className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Inspector</div>
               <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">{inspectorTitle}</div>
@@ -1909,8 +1950,35 @@ export function CodeNavigationPage() {
               </div>
             </div>
           </aside>
+          </>
         )}
       </div>
-    </div>
+    </ProjectViewShell>
   )
+}
+
+export function CodeNavigationPage() {
+  const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
+  const project = projectId ? getProject(projectId) : undefined
+
+  if (!project) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-center">
+          <p className="text-slate-500 dark:text-slate-400 mb-4">
+            Project not found: <code className="font-mono">{projectId}</code>
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-slate-600 dark:text-slate-400 underline underline-offset-2"
+          >
+            Back to projects
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <CodeNavigationView project={project} />
 }
