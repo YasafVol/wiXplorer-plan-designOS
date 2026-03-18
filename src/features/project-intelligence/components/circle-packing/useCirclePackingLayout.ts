@@ -58,7 +58,7 @@ function toDatum(displayNode: DisplayTreeNode, fallbackLabel: string): CircleHie
     id: node.id,
     label: node.label,
     type: node.type,
-    status: node.status,
+    status: node.healthStatus ?? node.status,
     description: node.description,
     isMultiParent: node.isMultiParent,
     value,

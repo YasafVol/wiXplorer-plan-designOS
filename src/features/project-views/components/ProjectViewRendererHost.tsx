@@ -14,7 +14,7 @@ interface ProjectViewRendererHostProps {
 
 export function ProjectViewRendererHost({ project, mode, focusNodeId }: ProjectViewRendererHostProps) {
   if (mode === 'intelligence') {
-    return <AppShell key={project.id} projectId={project.id} />
+    return <AppShell key={project.id} projectId={project.id} initialSelectedNodeId={focusNodeId} />
   }
 
   if (mode === 'code-navigation') {

@@ -18,7 +18,7 @@ import { categoryColor, formatDateTime, sourceLabel } from '@/features/project-i
 import { EditableText } from '@/features/project-intelligence/components/shared/EditableText'
 import { StatusIndicator } from '@/features/project-intelligence/components/shared/StatusIndicator'
 import { NODE_TYPE_LABELS } from '@/features/project-intelligence/types'
-import type { InspectorAction, NodeType, ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
+import type { InspectorAction, InspectorDetailTab, NodeType, ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
 
 const NODE_TYPE_ICON: Record<string, typeof FileCode2> = {
   collection: Database,
@@ -52,6 +52,7 @@ interface InspectorLevel3Props {
   }) => void
   onFileQuickEdit: (nodeId: string, filePath: string) => void
   onOpenBlame: () => void
+  onOpenDetail: (tab: InspectorDetailTab) => void
 }
 
 interface MetadataRow {
@@ -127,51 +128,36 @@ function metadataRows(node: ProjectNode): MetadataRow[] {
 }
 
 function actionsForType(type: NodeType): InspectorAction[] {
-  const openIde = { id: 'open-ide', label: 'Open in IDE', type: 'open-ide' as const, target: '', stub: true }
+  const configure = { id: 'configure', label: 'Configure', type: 'open-modal' as const, target: 'configuration', stub: false }
+  const schema = { id: 'schema', label: 'Schema', type: 'open-modal' as const, target: 'schema', stub: false }
+  const code = { id: 'code', label: 'Code', type: 'open-modal' as const, target: 'code', stub: false }
+  const history = { id: 'history', label: 'History', type: 'open-modal' as const, target: 'history', stub: false }
   const sendToChat = { id: 'open-chat', label: 'Send to chat', type: 'open-chat' as const, target: '', stub: true }
   const monitoring = { id: 'monitor', label: 'Go to monitoring', type: 'navigate' as const, target: '', stub: true }
 
   switch (type) {
     case 'collection':
-      return [
-        { id: 'view-schema', label: 'View schema', type: 'open-modal', target: 'schema', stub: false },
-        { id: 'query', label: 'Natural language query', type: 'open-chat', target: 'query', stub: true },
-        { id: 'cms', label: 'Go to CMS', type: 'navigate', target: 'cms', stub: true },
-        monitoring,
-      ]
+      return [schema, history, monitoring]
     case 'job':
     case 'action':
     case 'service-plugin':
     case 'api':
-      return [openIde, sendToChat, monitoring]
+      return [configure, schema, code, history, sendToChat, monitoring]
     case 'router':
     case 'event':
-      return [openIde, sendToChat]
+      return [configure, schema, code, history, sendToChat]
     case 'dashboard-page':
-      return [
-        { id: 'quick-edit', label: 'Quick edit config', type: 'open-modal', target: '', stub: true },
-        { id: 'dashboard', label: 'Go to dashboard', type: 'navigate', target: '', stub: true },
-        { id: 'preview', label: 'Go to live preview', type: 'external-link', target: '', stub: true },
-      ]
+      return [configure, schema, code, history, monitoring]
     case 'dashboard-plugin':
     case 'dashboard-modal':
-      return [
-        { id: 'quick-edit', label: 'Quick edit config', type: 'open-modal', target: '', stub: true },
-        { id: 'dashboard', label: 'Go to dashboard', type: 'navigate', target: '', stub: true },
-      ]
+      return [configure, schema, code, history]
     case 'function-library':
     case 'context':
-      return [
-        { id: 'editor', label: 'Go to editor', type: 'navigate', target: '', stub: true },
-        openIde,
-      ]
+      return [schema, code, history]
     case 'embedded-script':
-      return [
-        { id: 'view-script', label: 'View script', type: 'open-modal', target: 'script', stub: false },
-        monitoring,
-      ]
+      return [code, history, monitoring]
     case 'style':
-      return [{ id: 'editor', label: 'Go to editor', type: 'navigate', target: '', stub: true }]
+      return [code, history]
     default:
       return []
   }
@@ -185,10 +171,9 @@ export function InspectorLevel3({
   onConfigQuickEdit,
   onFileQuickEdit,
   onOpenBlame,
+  onOpenDetail,
 }: InspectorLevel3Props) {
   const descriptionRef = useRef<HTMLDivElement>(null)
-  const [showSchemaModal, setShowSchemaModal] = useState(false)
-  const [showScriptModal, setShowScriptModal] = useState(false)
   const [editingConfigKey, setEditingConfigKey] = useState<string | null>(null)
   const [editingConfigValue, setEditingConfigValue] = useState('')
   const rows = useMemo(() => metadataRows(node), [node])
@@ -257,8 +242,11 @@ export function InspectorLevel3({
       </div>
 
       {/* ── Status + Intent source — one compact strip ── */}
-      <div className="flex items-center justify-between gap-2">
-        <StatusIndicator status={node.status} label={node.status} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <StatusIndicator status={node.healthStatus ?? node.status} label={node.healthStatus ?? node.status} />
+        <span className="inline-flex shrink-0 rounded-full border border-stone-200 px-2 py-0.5 text-[11px] text-stone-600 dark:border-stone-700 dark:text-stone-400">
+          {node.activationStatus === 'disabled' ? 'disabled' : 'enabled'}
+        </span>
         <span className="inline-flex shrink-0 rounded-full border border-stone-200 px-2 py-0.5 text-[11px] text-stone-600 dark:border-stone-700 dark:text-stone-400">
           {sourceLabel(node)}
         </span>
@@ -377,8 +365,10 @@ export function InspectorLevel3({
             label={action.label}
             stub={action.stub}
             onClick={() => {
-              if (action.id === 'view-schema') setShowSchemaModal(true)
-              if (action.id === 'view-script') setShowScriptModal(true)
+              if (action.id === 'schema') onOpenDetail('schema')
+              if (action.id === 'configure') onOpenDetail('configuration')
+              if (action.id === 'code') onOpenDetail('code')
+              if (action.id === 'history') onOpenDetail('history')
             }}
           />
         ))}
@@ -387,39 +377,16 @@ export function InspectorLevel3({
       <div className="border-t border-stone-200 pt-3 dark:border-stone-700">
         <button
           type="button"
-          onClick={onOpenBlame}
+          onClick={() => {
+            onOpenDetail('history')
+            onOpenBlame()
+          }}
           className="text-xs font-medium text-stone-600 underline-offset-2 hover:underline dark:text-stone-300"
         >
           View change history
         </button>
       </div>
 
-      {/* ── Modals ── */}
-      {showSchemaModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-xl rounded-lg bg-white p-4 shadow-lg dark:bg-stone-900">
-            <h4 className="mb-2 text-sm font-semibold text-stone-900 dark:text-stone-100">Schema Summary</h4>
-            <p className="text-sm text-stone-700 dark:text-stone-300">{String(node.metadata.schemaSummary ?? 'No schema summary available.')}</p>
-            <div className="mt-4">
-              <ActionButton label="Close" onClick={() => setShowSchemaModal(false)} />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {showScriptModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-xl rounded-lg bg-white p-4 shadow-lg dark:bg-stone-900">
-            <h4 className="mb-2 text-sm font-semibold text-stone-900 dark:text-stone-100">Script Content</h4>
-            <pre className="overflow-x-auto rounded bg-stone-100 p-3 text-xs text-stone-700 dark:bg-stone-800 dark:text-stone-200">
-              {node.files[0] ? `// Script file: ${node.files[0]}\n// Content loading is a Phase 2 feature.` : 'No script file attached.'}
-            </pre>
-            <div className="mt-4">
-              <ActionButton label="Close" onClick={() => setShowScriptModal(false)} />
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   )
 }

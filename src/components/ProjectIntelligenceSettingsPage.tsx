@@ -14,7 +14,7 @@ function StubToggle({ label }: { label: string }) {
 export function ProjectIntelligenceSettingsPage() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
-  const index = loadProjectIndex()
+  const index = loadProjectIndex(projectId ?? 'hotel-meridian')
 
   return (
     <div className="min-h-screen bg-stone-50 px-6 py-6 dark:bg-stone-950">

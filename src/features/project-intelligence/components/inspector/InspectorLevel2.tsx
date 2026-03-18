@@ -3,7 +3,7 @@ import { ConnectionList } from '@/features/project-intelligence/components/inspe
 import { Badge } from '@/features/project-intelligence/components/shared/Badge'
 import { EditableText } from '@/features/project-intelligence/components/shared/EditableText'
 import { formatDateTime, sourceLabel } from '@/features/project-intelligence/components/inspector/inspectorUtils'
-import type { ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
+import type { InspectorDetailTab, ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
 
 interface InspectorLevel2Props {
   node: ProjectNode
@@ -11,9 +11,10 @@ interface InspectorLevel2Props {
   onSelectNode: (nodeId: string) => void
   onUpdateNode: (nodeId: string, updates: Partial<Pick<ProjectNode, 'label' | 'description'>>) => void
   onOpenBlame: () => void
+  onOpenDetail: (tab: InspectorDetailTab) => void
 }
 
-export function InspectorLevel2({ node, tree, onSelectNode, onUpdateNode, onOpenBlame }: InspectorLevel2Props) {
+export function InspectorLevel2({ node, tree, onSelectNode, onUpdateNode, onOpenBlame, onOpenDetail }: InspectorLevel2Props) {
   const parentLabels = node.parentIds.map((id) => tree.nodesById[id]).filter(Boolean)
   const involvedSolutions = Array.isArray(node.metadata.involvedSolutions)
     ? (node.metadata.involvedSolutions as string[])
@@ -93,6 +94,7 @@ export function InspectorLevel2({ node, tree, onSelectNode, onUpdateNode, onOpen
       <div className="flex flex-wrap gap-2 border-t border-stone-200 pt-3 dark:border-stone-700">
         <ActionButton label="Go to Wix dashboard" stub />
         <ActionButton label="View connections" onClick={() => document.getElementById('pi-connections')?.scrollIntoView({ behavior: 'smooth' })} />
+        <ActionButton label="Open detail view" onClick={() => onOpenDetail('overview')} />
         <ActionButton label="View change history" onClick={onOpenBlame} />
       </div>
     </section>

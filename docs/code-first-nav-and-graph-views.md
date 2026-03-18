@@ -553,6 +553,66 @@ Broader product decisions are also represented here as baseline anchors and sour
 
 ---
 
+## Project Intelligence v1.2 Alignment (2026-03-08)
+
+### Baseline Gap Matrix (frozen for implementation pass)
+
+| v1.2 requirement | Previous state | Implemented in this pass | Notes |
+| --- | --- | --- | --- |
+| Health and activation are separate signals | `status` only | Added `healthStatus` + `activationStatus` with compatibility alias | Existing charts keep reading legacy `status` alias during migration |
+| Directional connection relations | Connection IDs without relation semantics | Added connection relation model (`reads`, `calls`, `surfaces-on`, etc.) and resolver normalization | Legacy string connections normalize to `calls` |
+| History entries require commit message | `EditEvent` had `timestamp`, `author`, `change` only | Added required `commitMessage` to edit history shape and parser output | Parser supports legacy one-part history lines |
+| Inspector shows outward + inward connection context | Flat connection list | Connection list now renders "Depends on" and "Used by / surfaces on" groups | Inbound entries are computed from reverse references when not explicit |
+| Detail surface from inspector actions | Mostly inline panel + isolated modals | Added layered detail view (Overview, Configuration, Schema/Preview, Code, History) and wired inspector actions to tabs | Monitoring/CMS remain phase-2 stubs |
+| Selection persistence | In-memory selection only in Project Intelligence | Added `?selected=` URL persistence + state fallback for Project Intelligence and graph route handoff | Enables stable cross-refresh deep linking for selected node |
+| Project-scoped intelligence assets | Shared intelligence payload imports | Migrated manifest imports to per-project intelligence assets under `sample-projects/<id>/intelligence/` | Both sample projects now resolve assets from project-local paths |
+
+### Decisions Logged In This Session
+
+What changed:
+
+- Project Intelligence schema now supports v1.2 status split and directional connection relations.
+- Inspector now supports a two-layer interaction model: inline panel + full detail view.
+- Selection is persisted in URL query (`selected`) for Project Intelligence compatibility.
+- Manifest now reads intelligence data from project-local sample folders.
+
+Why this was chosen:
+
+- v1.2 depends on trust signals (`health` vs `activation`) and relationship semantics; flat status/connection models were insufficient.
+- A panel-only surface could not scale to configuration/schema/history depth without crowding the inspector.
+- URL persistence improves reproducibility for debugging, demos, and sharing node context.
+- Project-local intelligence assets align route ownership with data ownership and remove hidden global coupling.
+
+Impacted areas/files:
+
+- `src/features/project-intelligence/types.ts`
+- `src/features/project-intelligence/data/index.ts`
+- `src/features/project-intelligence/lib/resolveConnections.ts`
+- `src/features/project-intelligence/lib/buildTree.ts`
+- `src/features/project-intelligence/lib/parseIntentDoc.ts`
+- `src/features/project-intelligence/components/inspector/ConnectionList.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorPanel.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorLevel2.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorLevel3.tsx`
+- `src/features/project-intelligence/components/inspector/BlameView.tsx`
+- `src/features/project-intelligence/components/inspector/InspectorDetailView.tsx`
+- `src/features/project-intelligence/components/AppShell.tsx`
+- `src/features/project-views/components/ProjectViewRendererHost.tsx`
+- `src/components/ProjectGraphPage.tsx`
+- `src/components/ProjectIntelligencePage.tsx`
+- `src/components/ProjectIntelligenceSettingsPage.tsx`
+- `src/projects/sampleProjectManifest.ts`
+- `sample-projects/hotel-meridian/intelligence/*`
+- `sample-projects/small-site/intelligence/*`
+
+Follow-ups / open questions:
+
+- Add explicit visual affordance for relation direction on edges in chart layers (not only inspector rows).
+- Decide whether code-navigation should also adopt URL-selected node persistence to fully match graph/intelligence behavior.
+- Replace duplicated sample intelligence payloads with generation-time project-local assets.
+
+---
+
 ## Open Follow-Ups
 
 - Add explicit label in inspector for projected/synthetic edges (optional transparency feature).

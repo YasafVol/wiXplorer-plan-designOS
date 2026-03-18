@@ -17,8 +17,24 @@ export type NodeType =
   | 'function-library'
   | 'context'
 
-export type IntentSource = 'top-down' | 'bottom-up' | 'reconciled' | 'user-edited'
+export type IntentSource =
+  | 'inferred-from-code'
+  | 'user-chat'
+  | 'user-edited'
+  | 'reconciled'
+  | 'top-down'
+  | 'bottom-up'
 export type NodeStatus = 'healthy' | 'warning' | 'error' | 'unknown'
+export type ActivationStatus = 'enabled' | 'disabled'
+export type ConnectionRelation =
+  | 'reads'
+  | 'writes'
+  | 'calls'
+  | 'read-by'
+  | 'written-by'
+  | 'called-by'
+  | 'surfaces-on'
+  | 'hosted-by'
 
 export interface NodeRef {
   id: string
@@ -26,9 +42,22 @@ export interface NodeRef {
   type: NodeType
 }
 
+export interface NodeConnection extends NodeRef {
+  relation: ConnectionRelation
+  context?: string
+}
+
+export interface RawNodeConnection {
+  id?: string
+  targetId?: string
+  relation?: string
+  context?: string
+}
+
 export interface EditEvent {
   timestamp: string
   author: string
+  commitMessage: string
   change: string
 }
 
@@ -38,12 +67,15 @@ export interface ProjectNode {
   label: string
   description: string | null
   intentSource: IntentSource
+  healthStatus?: NodeStatus
+  activationStatus?: ActivationStatus
+  // Legacy status alias used by existing charts and tests.
   status: NodeStatus
   lastModified: string
   lastModifiedBy: string
   parentIds: string[]
   children: NodeRef[]
-  connections: NodeRef[]
+  connections: NodeConnection[]
   files: string[]
   isMultiParent: boolean
   metadata: Record<string, unknown>
@@ -67,12 +99,15 @@ export interface ProjectIndexNode {
   type: NodeType
   label: string
   intentSource: IntentSource
+  healthStatus?: NodeStatus
+  activationStatus?: ActivationStatus
+  // Legacy field supported by the phase-1 mock dataset.
   status: NodeStatus
   lastModified: string
   lastModifiedBy: string
   parentIds: string[]
   children: string[]
-  connections: string[]
+  connections: Array<string | RawNodeConnection>
   files: string[]
   isMultiParent: boolean
   metadata: Record<string, unknown>
@@ -105,6 +140,8 @@ export interface InspectorAction {
   condition?: 'always' | 'on-warning' | 'on-error'
   stub: boolean
 }
+
+export type InspectorDetailTab = 'overview' | 'configuration' | 'schema' | 'code' | 'history'
 
 export type PendingChangeSection = 'configuration' | 'file'
 export type PendingChangeSource = 'inline-quick-edit' | 'modal-quick-edit'

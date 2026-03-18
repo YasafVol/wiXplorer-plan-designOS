@@ -1,7 +1,7 @@
 import { buildTree } from '@/features/project-intelligence/lib/buildTree'
 import { parseIntentDoc } from '@/features/project-intelligence/lib/parseIntentDoc'
 import { getSampleProjectManifestEntry } from '@/projects/sampleProjectManifest'
-import type { ParsedIntentDoc, ProjectIndex, ProjectTree } from '@/features/project-intelligence/types'
+import type { ActivationStatus, IntentSource, NodeStatus, ParsedIntentDoc, ProjectIndex, ProjectIndexNode, ProjectTree } from '@/features/project-intelligence/types'
 
 function stripJsonComments(text: string): string {
   let output = ''
@@ -75,10 +75,46 @@ function parseProjectIndex(rawText: string): ProjectIndex {
       throw new Error(`Duplicate node ids in index: ${Array.from(duplicateIds).join(', ')}`)
     }
 
-    return parsed
+    const normalizedNodes = parsed.nodes.map((node) => normalizeIndexNode(node))
+    return { ...parsed, nodes: normalizedNodes }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to parse project-intelligence.json: ${message}`)
+  }
+}
+
+function normalizeIntentSource(intentSource: IntentSource): IntentSource {
+  switch (intentSource) {
+    case 'top-down':
+      return 'user-chat'
+    case 'bottom-up':
+      return 'inferred-from-code'
+    default:
+      return intentSource
+  }
+}
+
+function normalizeActivationStatus(activationStatus: ActivationStatus | undefined): ActivationStatus {
+  return activationStatus === 'disabled' ? 'disabled' : 'enabled'
+}
+
+function normalizeHealthStatus(status: NodeStatus | undefined): NodeStatus {
+  if (status === 'healthy' || status === 'warning' || status === 'error' || status === 'unknown') {
+    return status
+  }
+  return 'unknown'
+}
+
+function normalizeIndexNode(node: ProjectIndexNode): ProjectIndexNode {
+  const healthStatus = normalizeHealthStatus(node.healthStatus ?? node.status)
+  const activationStatus = normalizeActivationStatus(node.activationStatus)
+  return {
+    ...node,
+    intentSource: normalizeIntentSource(node.intentSource),
+    healthStatus,
+    status: healthStatus,
+    activationStatus,
+    connections: node.connections ?? [],
   }
 }
 

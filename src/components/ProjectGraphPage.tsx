@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ProjectViewShell } from '@/features/project-views/components/ProjectViewShell'
 import { ProjectViewRendererHost } from '@/features/project-views/components/ProjectViewRendererHost'
 import { ProjectViewTopBar } from '@/features/project-views/components/ProjectViewTopBar'
@@ -8,7 +8,9 @@ export function ProjectGraphPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const focusNodeId = (location.state as { focusNodeId?: string } | null)?.focusNodeId
+  const selectedNodeId = searchParams.get('selected') ?? focusNodeId
 
   const project = projectId ? getProject(projectId) : undefined
 
@@ -54,7 +56,7 @@ export function ProjectGraphPage() {
       className="h-screen flex flex-col overflow-hidden bg-stone-50 dark:bg-stone-950"
       topBar={<ProjectViewTopBar projectName={project.name} projectDomain={project.domain} viewLabel="project graph" />}
     >
-      <ProjectViewRendererHost project={project} mode="graph" focusNodeId={focusNodeId} />
+      <ProjectViewRendererHost project={project} mode="graph" focusNodeId={selectedNodeId ?? undefined} />
     </ProjectViewShell>
   )
 }

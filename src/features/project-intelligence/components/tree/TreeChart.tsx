@@ -57,7 +57,7 @@ function buildTreeLayout(tree: ProjectTree, collapsedNodeIds: ReadonlySet<string
       id: treeNode.id,
       label: treeNode.node.label,
       type: treeNode.node.type,
-      status: treeNode.node.status,
+      status: treeNode.node.healthStatus ?? treeNode.node.status,
       depth: treeNode.depth,
       parentId: treeNode.parentId,
       x,

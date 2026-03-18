@@ -1,13 +1,66 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Database } from 'lucide-react'
 import { Badge } from '@/features/project-intelligence/components/shared/Badge'
-import type { NodeRef, ProjectTree } from '@/features/project-intelligence/types'
+import type { ConnectionRelation, NodeConnection, ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
 
 interface ConnectionListProps {
   currentNodeId: string
   tree: ProjectTree
-  connections: NodeRef[]
+  connections: NodeConnection[]
   onNodeSelect: (nodeId: string) => void
+}
+
+const OUTWARD_RELATIONS: ConnectionRelation[] = ['reads', 'writes', 'calls']
+const INWARD_RELATIONS: ConnectionRelation[] = ['read-by', 'written-by', 'called-by', 'surfaces-on', 'hosted-by']
+
+function isOutwardRelation(relation: ConnectionRelation) {
+  return OUTWARD_RELATIONS.includes(relation)
+}
+
+function relationLabel(relation: ConnectionRelation): string {
+  switch (relation) {
+    case 'reads':
+      return 'reads from'
+    case 'writes':
+      return 'writes to'
+    case 'calls':
+      return 'calls'
+    case 'read-by':
+      return 'read by'
+    case 'written-by':
+      return 'written by'
+    case 'called-by':
+      return 'called by'
+    case 'surfaces-on':
+      return 'surfaces on'
+    case 'hosted-by':
+      return 'hosted by'
+    default:
+      return relation
+  }
+}
+
+function invertRelation(relation: ConnectionRelation): ConnectionRelation {
+  switch (relation) {
+    case 'reads':
+      return 'read-by'
+    case 'writes':
+      return 'written-by'
+    case 'calls':
+      return 'called-by'
+    case 'read-by':
+      return 'reads'
+    case 'written-by':
+      return 'writes'
+    case 'called-by':
+      return 'calls'
+    case 'surfaces-on':
+      return 'hosted-by'
+    case 'hosted-by':
+      return 'surfaces-on'
+    default:
+      return 'called-by'
+  }
 }
 
 function topLevelAncestorId(tree: ProjectTree, nodeId: string): string | null {
@@ -27,7 +80,7 @@ function ConnectionRow({
   tree,
   onNodeSelect,
 }: {
-  connection: NodeRef
+  connection: NodeConnection
   isCrossZone: boolean
   tree: ProjectTree
   onNodeSelect: (nodeId: string) => void
@@ -46,6 +99,10 @@ function ConnectionRow({
       >
         <div className="min-w-0">
           <p className="truncate font-semibold underline underline-offset-2">{connection.label}</p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-wide text-stone-500 dark:text-stone-400">
+            {relationLabel(connection.relation)}
+            {connection.context ? ` · ${connection.context}` : ''}
+          </p>
         </div>
         <div className="shrink-0 space-x-1.5">
           <Badge label={connection.type} color="var(--pi-color-level2)" />
@@ -88,23 +145,70 @@ function ConnectionRow({
 
 export function ConnectionList({ currentNodeId, tree, connections, onNodeSelect }: ConnectionListProps) {
   const currentRoot = topLevelAncestorId(tree, currentNodeId)
+  const outwardConnections = connections.filter((connection) => isOutwardRelation(connection.relation))
+  const inboundConnectionsFromTree = tree.nodes
+    .filter((node) => node.id !== currentNodeId)
+    .flatMap((node) => {
+      const matching = node.connections.filter((connection) => connection.id === currentNodeId)
+      if (matching.length === 0) return []
+      return matching.map((match) => {
+        const sourceNode: ProjectNode = node
+        return {
+          id: sourceNode.id,
+          label: sourceNode.label,
+          type: sourceNode.type,
+          relation: invertRelation(match.relation),
+          context: match.context,
+        } satisfies NodeConnection
+      })
+    })
+  const inboundConnections = [...connections.filter((connection) => INWARD_RELATIONS.includes(connection.relation)), ...inboundConnectionsFromTree]
+  const dedupInboundByKey = new Set<string>()
+  const uniqueInboundConnections = inboundConnections.filter((connection) => {
+    const key = `${connection.id}:${connection.relation}:${connection.context ?? ''}`
+    if (dedupInboundByKey.has(key)) return false
+    dedupInboundByKey.add(key)
+    return true
+  })
 
   return (
     <div className="space-y-2">
-      {connections.map((connection) => {
-        const connectionRoot = topLevelAncestorId(tree, connection.id)
-        const isCrossZone = Boolean(currentRoot && connectionRoot && currentRoot !== connectionRoot)
-
-        return (
-          <ConnectionRow
-            key={connection.id}
-            connection={connection}
-            isCrossZone={isCrossZone}
-            tree={tree}
-            onNodeSelect={onNodeSelect}
-          />
-        )
-      })}
+      {outwardConnections.length > 0 ? (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Depends on</p>
+          {outwardConnections.map((connection) => {
+            const connectionRoot = topLevelAncestorId(tree, connection.id)
+            const isCrossZone = Boolean(currentRoot && connectionRoot && currentRoot !== connectionRoot)
+            return (
+              <ConnectionRow
+                key={`out-${connection.id}-${connection.relation}-${connection.context ?? ''}`}
+                connection={connection}
+                isCrossZone={isCrossZone}
+                tree={tree}
+                onNodeSelect={onNodeSelect}
+              />
+            )
+          })}
+        </div>
+      ) : null}
+      {uniqueInboundConnections.length > 0 ? (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Used by / surfaces on</p>
+          {uniqueInboundConnections.map((connection) => {
+            const connectionRoot = topLevelAncestorId(tree, connection.id)
+            const isCrossZone = Boolean(currentRoot && connectionRoot && currentRoot !== connectionRoot)
+            return (
+              <ConnectionRow
+                key={`in-${connection.id}-${connection.relation}-${connection.context ?? ''}`}
+                connection={connection}
+                isCrossZone={isCrossZone}
+                tree={tree}
+                onNodeSelect={onNodeSelect}
+              />
+            )
+          })}
+        </div>
+      ) : null}
     </div>
   )
 }

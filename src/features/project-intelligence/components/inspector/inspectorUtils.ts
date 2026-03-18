@@ -6,9 +6,9 @@ export function formatDateTime(value: string) {
 
 export function sourceLabel(node: ProjectNode) {
   switch (node.intentSource) {
-    case 'top-down':
+    case 'user-chat':
       return 'Created by agent'
-    case 'bottom-up':
+    case 'inferred-from-code':
       return 'Inferred from code'
     case 'reconciled':
       return 'AI reconciled'
@@ -30,7 +30,7 @@ export function countDescendantStatus(tree: ProjectTree, node: ProjectNode, stat
     visited.add(id)
     const current = tree.nodesById[id]
     if (!current) continue
-    if (current.status === status) {
+    if ((current.healthStatus ?? current.status) === status) {
       count += 1
     }
     queue.push(...current.children.map((child) => child.id))

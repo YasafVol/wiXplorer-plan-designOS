@@ -47,7 +47,7 @@ export function useIcicleLayout(
           id: treeNode.node.id,
           label: treeNode.node.label,
           type: treeNode.node.type,
-          status: treeNode.node.status,
+          status: treeNode.node.healthStatus ?? treeNode.node.status,
           description: treeNode.node.description,
           isMultiParent: treeNode.node.isMultiParent,
           depth: treeNode.depth,

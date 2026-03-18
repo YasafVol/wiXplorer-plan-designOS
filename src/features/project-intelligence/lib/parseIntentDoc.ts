@@ -11,11 +11,14 @@ function parseEditHistory(lines: string[]): EditEvent[] {
     .map((value) => {
       const parts = value.split(/\s[—-]\s/)
       const left = parts[0] ?? ''
-      const change = parts.slice(1).join(' - ')
+      const rightParts = parts.slice(1)
       const [timestamp = '', author = 'unknown'] = left.trim().split(/\s+/, 2)
+      const commitMessage = (rightParts[0] ?? 'Update metadata').trim() || 'Update metadata'
+      const change = (rightParts.slice(1).join(' - ') || commitMessage).trim()
       return {
         timestamp,
         author,
+        commitMessage,
         change: change.trim(),
       }
     })

@@ -1,11 +1,14 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ProjectViewRendererHost } from '@/features/project-views/components/ProjectViewRendererHost'
 import { getProject } from '@/projects'
 
 export function ProjectIntelligencePage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const project = projectId ? getProject(projectId) : undefined
+  const focusNodeId = searchParams.get('selected') ?? (location.state as { focusNodeId?: string } | null)?.focusNodeId
 
   if (!project) {
     return (
@@ -41,5 +44,5 @@ export function ProjectIntelligencePage() {
     )
   }
 
-  return <ProjectViewRendererHost project={project} mode="intelligence" />
+  return <ProjectViewRendererHost project={project} mode="intelligence" focusNodeId={focusNodeId ?? undefined} />
 }

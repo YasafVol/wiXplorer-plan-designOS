@@ -1,6 +1,6 @@
 import { ArrowLeft, Settings } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CirclePackingChart } from '@/features/project-intelligence/components/circle-packing/CirclePackingChart'
 import { IcicleChart } from '@/features/project-intelligence/components/icicle/IcicleChart'
 import { FileQuickEditModal } from '@/features/project-intelligence/components/inspector/FileQuickEditModal'
@@ -14,6 +14,7 @@ import type { PendingChange, ProjectNode, ProjectTree } from '@/features/project
 
 interface AppShellProps {
   projectId: string
+  initialSelectedNodeId?: string
 }
 
 type ViewMode = 'tree' | 'circle-packing' | 'icicle'
@@ -51,10 +52,11 @@ interface FileQuickEditTarget {
   filePath: string
 }
 
-export function AppShell({ projectId }: AppShellProps) {
+export function AppShell({ projectId, initialSelectedNodeId }: AppShellProps) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tree, setTree] = useState<ProjectTree>(() => loadProjectTree(projectId))
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() => searchParams.get('selected') ?? initialSelectedNodeId ?? null)
   const [zoomRootId, setZoomRootId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('tree')
   const [treeAppearance, setTreeAppearance] = useState<TreeNodeVariant>('focus-mode')
@@ -161,6 +163,14 @@ export function AppShell({ projectId }: AppShellProps) {
     setPendingChanges((prev) => prev.filter((entry) => entry.id !== changeId))
   }
 
+  const selectNode = (nodeId: string | null) => {
+    setSelectedNodeId(nodeId)
+    const next = new URLSearchParams(searchParams)
+    if (nodeId) next.set('selected', nodeId)
+    else next.delete('selected')
+    setSearchParams(next, { replace: true })
+  }
+
   return (
     <div className="pi-shell flex h-screen flex-col bg-[var(--pi-color-bg)] text-[var(--pi-color-text-primary)]">
       <header className="flex h-14 items-center justify-between border-b border-[var(--pi-color-border)] bg-[var(--pi-color-header-bg)] px-3 text-[var(--pi-color-header-text)]">
@@ -258,7 +268,7 @@ export function AppShell({ projectId }: AppShellProps) {
               tree={tree}
               selectedNodeId={selectedNodeId}
               zoomRootId={zoomRootId}
-              onNodeClick={(id) => setSelectedNodeId(id)}
+              onNodeClick={(id) => selectNode(id)}
               onNodeDoubleClick={(id) => {
                 if (zoomRootId !== id) setZoomRootId(id)
               }}
@@ -269,7 +279,7 @@ export function AppShell({ projectId }: AppShellProps) {
               tree={tree}
               selectedNodeId={selectedNodeId}
               zoomRootId={zoomRootId}
-              onNodeClick={(id) => setSelectedNodeId(id)}
+              onNodeClick={(id) => selectNode(id)}
               onNodeDoubleClick={(id) => {
                 if (zoomRootId !== id) setZoomRootId(id)
               }}
@@ -280,7 +290,7 @@ export function AppShell({ projectId }: AppShellProps) {
               tree={tree}
               selectedNodeId={selectedNodeId}
               variant={treeAppearance}
-              onNodeClick={(id) => setSelectedNodeId(id)}
+              onNodeClick={(id) => selectNode(id)}
             />
           )}
         </section>
@@ -297,7 +307,7 @@ export function AppShell({ projectId }: AppShellProps) {
           <InspectorPanel
             tree={tree}
             selectedNodeId={selectedNodeId}
-            onSelectNode={(id) => setSelectedNodeId(id)}
+            onSelectNode={selectNode}
             onUpdateNode={(nodeId, updates) => setTree((prev) => updateTreeNode(prev, nodeId, updates))}
             onConfigQuickEdit={handleConfigQuickEdit}
             onFileQuickEdit={handleOpenFileQuickEdit}
@@ -311,7 +321,7 @@ export function AppShell({ projectId }: AppShellProps) {
           onClose={() => setShowPendingChangesModal(false)}
           onRevert={handleRevertPendingChange}
           onJumpToNode={(nodeId) => {
-            setSelectedNodeId(nodeId)
+            selectNode(nodeId)
             setShowPendingChangesModal(false)
           }}
         />

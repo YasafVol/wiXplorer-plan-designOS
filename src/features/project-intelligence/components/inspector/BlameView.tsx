@@ -43,7 +43,10 @@ export function BlameView({ node, onClose }: BlameViewProps) {
                 <span>·</span>
                 <span>{event.author}</span>
               </div>
-              <p className="text-sm text-stone-700 dark:text-stone-200">{event.change}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                {event.commitMessage}
+              </p>
+              <p className="mt-1 text-sm text-stone-700 dark:text-stone-200">{event.change}</p>
             </div>
           ))
         )}

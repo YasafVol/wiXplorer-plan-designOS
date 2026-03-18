@@ -1,4 +1,4 @@
-import { resolveNodeRefs } from '@/features/project-intelligence/lib/resolveConnections'
+import { resolveNodeConnections, resolveNodeRefs } from '@/features/project-intelligence/lib/resolveConnections'
 import type { ParsedIntentDoc, ProjectIndex, ProjectIndexNode, ProjectNode, ProjectTree } from '@/features/project-intelligence/types'
 
 function buildIntentNodeMap(intentDocs: ParsedIntentDoc[]) {
@@ -51,12 +51,14 @@ export function buildTree(jsonIndex: ProjectIndex, intentDocs: ParsedIntentDoc[]
       label: node.label,
       description: intentNode?.description ?? null,
       intentSource: node.intentSource,
-      status: node.status,
+      healthStatus: node.healthStatus ?? node.status,
+      activationStatus: node.activationStatus ?? 'enabled',
+      status: node.healthStatus ?? node.status,
       lastModified: node.lastModified,
       lastModifiedBy: node.lastModifiedBy,
       parentIds: node.parentIds,
       children: resolveNodeRefs(node.children, indexNodesById),
-      connections: resolveNodeRefs(node.connections, indexNodesById),
+      connections: resolveNodeConnections(node.connections, indexNodesById),
       files: node.files,
       isMultiParent: node.isMultiParent,
       metadata: node.metadata,

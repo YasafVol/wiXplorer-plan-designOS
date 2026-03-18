@@ -2,13 +2,20 @@ import smallMeta from '@/../sample-projects/small-site/project.meta.json'
 import hotelMeta from '@/../sample-projects/hotel-meridian/project.meta.json'
 import smallGraphData from '@/../product/sections/project-graph/data.json'
 import hotelGraphData from '@/../product/sections/project-graph/data.code-large-complicated.json'
-import sharedIntelligenceIndexRaw from '@/features/project-intelligence/data/project-intelligence.json?raw'
-import bookingFlowMarkdown from '@/features/project-intelligence/data/booking-flow.md?raw'
-import guestDiscoveryMarkdown from '@/features/project-intelligence/data/guest-discovery.md?raw'
-import loyaltyProgramMarkdown from '@/features/project-intelligence/data/loyalty-program.md?raw'
-import pmsIntegrationMarkdown from '@/features/project-intelligence/data/pms-integration.md?raw'
-import retailMarkdown from '@/features/project-intelligence/data/retail.md?raw'
-import staffOperationsMarkdown from '@/features/project-intelligence/data/staff-operations.md?raw'
+import smallIntelligenceIndexRaw from '@/../sample-projects/small-site/intelligence/project-intelligence.json?raw'
+import smallBookingFlowMarkdown from '@/../sample-projects/small-site/intelligence/booking-flow.md?raw'
+import smallGuestDiscoveryMarkdown from '@/../sample-projects/small-site/intelligence/guest-discovery.md?raw'
+import smallLoyaltyProgramMarkdown from '@/../sample-projects/small-site/intelligence/loyalty-program.md?raw'
+import smallPmsIntegrationMarkdown from '@/../sample-projects/small-site/intelligence/pms-integration.md?raw'
+import smallRetailMarkdown from '@/../sample-projects/small-site/intelligence/retail.md?raw'
+import smallStaffOperationsMarkdown from '@/../sample-projects/small-site/intelligence/staff-operations.md?raw'
+import hotelIntelligenceIndexRaw from '@/../sample-projects/hotel-meridian/intelligence/project-intelligence.json?raw'
+import hotelBookingFlowMarkdown from '@/../sample-projects/hotel-meridian/intelligence/booking-flow.md?raw'
+import hotelGuestDiscoveryMarkdown from '@/../sample-projects/hotel-meridian/intelligence/guest-discovery.md?raw'
+import hotelLoyaltyProgramMarkdown from '@/../sample-projects/hotel-meridian/intelligence/loyalty-program.md?raw'
+import hotelPmsIntegrationMarkdown from '@/../sample-projects/hotel-meridian/intelligence/pms-integration.md?raw'
+import hotelRetailMarkdown from '@/../sample-projects/hotel-meridian/intelligence/retail.md?raw'
+import hotelStaffOperationsMarkdown from '@/../sample-projects/hotel-meridian/intelligence/staff-operations.md?raw'
 
 export interface ProjectViewCapabilities {
   graph: boolean
@@ -36,13 +43,22 @@ export interface SampleProjectManifestEntry {
   intelligenceDocsRaw: Record<string, string>
 }
 
-const SHARED_INTELLIGENCE_DOCS: Record<string, string> = {
-  'booking-flow.md': bookingFlowMarkdown,
-  'guest-discovery.md': guestDiscoveryMarkdown,
-  'loyalty-program.md': loyaltyProgramMarkdown,
-  'pms-integration.md': pmsIntegrationMarkdown,
-  'retail.md': retailMarkdown,
-  'staff-operations.md': staffOperationsMarkdown,
+const SMALL_SITE_INTELLIGENCE_DOCS: Record<string, string> = {
+  'booking-flow.md': smallBookingFlowMarkdown,
+  'guest-discovery.md': smallGuestDiscoveryMarkdown,
+  'loyalty-program.md': smallLoyaltyProgramMarkdown,
+  'pms-integration.md': smallPmsIntegrationMarkdown,
+  'retail.md': smallRetailMarkdown,
+  'staff-operations.md': smallStaffOperationsMarkdown,
+}
+
+const HOTEL_INTELLIGENCE_DOCS: Record<string, string> = {
+  'booking-flow.md': hotelBookingFlowMarkdown,
+  'guest-discovery.md': hotelGuestDiscoveryMarkdown,
+  'loyalty-program.md': hotelLoyaltyProgramMarkdown,
+  'pms-integration.md': hotelPmsIntegrationMarkdown,
+  'retail.md': hotelRetailMarkdown,
+  'staff-operations.md': hotelStaffOperationsMarkdown,
 }
 
 export const SAMPLE_PROJECT_MANIFEST: SampleProjectManifestEntry[] = [
@@ -55,8 +71,8 @@ export const SAMPLE_PROJECT_MANIFEST: SampleProjectManifestEntry[] = [
     graphData: smallGraphData as ProjectGraphPayload,
     // Temporary seed payload until dedicated small-site code-navigation data lands.
     codeNavigationData: hotelGraphData as ProjectGraphPayload,
-    intelligenceIndexRaw: sharedIntelligenceIndexRaw,
-    intelligenceDocsRaw: SHARED_INTELLIGENCE_DOCS,
+    intelligenceIndexRaw: smallIntelligenceIndexRaw,
+    intelligenceDocsRaw: SMALL_SITE_INTELLIGENCE_DOCS,
   },
   {
     id: hotelMeta.id,
@@ -66,8 +82,8 @@ export const SAMPLE_PROJECT_MANIFEST: SampleProjectManifestEntry[] = [
     views: hotelMeta.views,
     graphData: hotelGraphData as ProjectGraphPayload,
     codeNavigationData: hotelGraphData as ProjectGraphPayload,
-    intelligenceIndexRaw: sharedIntelligenceIndexRaw,
-    intelligenceDocsRaw: SHARED_INTELLIGENCE_DOCS,
+    intelligenceIndexRaw: hotelIntelligenceIndexRaw,
+    intelligenceDocsRaw: HOTEL_INTELLIGENCE_DOCS,
   },
 ]
 

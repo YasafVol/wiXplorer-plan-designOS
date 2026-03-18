@@ -1,6 +1,6 @@
 import { jobs } from '@wix/jobs'
 
-export default jobs.handler(async (job, metadata) => {
+export default jobs.handler(async (job: unknown, metadata: unknown) => {
   void job
   void metadata
 
